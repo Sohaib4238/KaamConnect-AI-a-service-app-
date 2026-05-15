@@ -1,0 +1,1 @@
+ai service app project for hackathon
