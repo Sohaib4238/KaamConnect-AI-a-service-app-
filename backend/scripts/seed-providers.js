@@ -297,6 +297,46 @@ const providers = [
     }
   },
   {
+    place_id: 'PKR-ISB-008',
+    name: 'Ahmed AC & Cooling Services',
+    location: { lat: 33.6517, lng: 72.9750 },
+    service_categories: ['AC_REPAIR'],
+    phone: '+92-300-1234567',
+    simulated_state: {
+      availability: true,
+      next_available_slot: new Date(Date.now() + 3600000).toISOString(),
+      on_time_score: 0.94,
+      cancellation_rate: 0.03,
+      rating: 4.8,
+      review_sentiment_score: 0.92,
+      recent_jobs_completed: 18,
+      price_range_pkr: { min: 800, max: 2500 },
+      skill_level: 'expert',
+      mohalla_trust_score: 0.95,
+      risk_score: 0.05
+    }
+  },
+  {
+    place_id: 'PKR-ISB-009',
+    name: 'G-13 Climate Control Experts',
+    location: { lat: 33.6489, lng: 72.9801 },
+    service_categories: ['AC_REPAIR', 'ELECTRICIAN'],
+    phone: '+92-300-7654321',
+    simulated_state: {
+      availability: true,
+      next_available_slot: new Date(Date.now() + 7200000).toISOString(),
+      on_time_score: 0.87,
+      cancellation_rate: 0.06,
+      rating: 4.5,
+      review_sentiment_score: 0.81,
+      recent_jobs_completed: 12,
+      price_range_pkr: { min: 600, max: 2000 },
+      skill_level: 'intermediate',
+      mohalla_trust_score: 0.88,
+      risk_score: 0.10
+    }
+  },
+  {
     place_id: "PKR-ISB-007",
     name: "F-7 Glow Beauty",
     location: { lat: 33.7160, lng: 73.0530 },
@@ -334,7 +374,7 @@ async function seedProviders() {
   }
 
   console.log(`Starting to seed ${providers.length} providers...`);
-  
+
   let successCount = 0;
   let failureCount = 0;
 

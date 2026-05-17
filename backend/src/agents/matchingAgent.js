@@ -1,101 +1,168 @@
-/**
- * KaamConnect — Explicit Named Agent: MatchingAgent
- * 
- * ONLY scores and ranks service providers. Pure code (No LLM).
- * Scoring formula: score = (0.4 × proximity_score) + (0.3 × rating_normalized) + (0.3 × availability_score)
- * Returns the full scorecard for each provider to expose visible reasoning for hackathon judges.
- * Supports price filter refinements for mid-conversation state changes (Edge Case C).
- */
+import { logStep } from '../utils/logger.js';
 
-/**
- * Execute pure code provider scoring and ranking.
- * 
- * @param {Array} providerList 
- * @param {string} [timePreference] 
- * @param {number} [maxPriceThreshold=null] - Exclude providers above this price if filtering for cheaper alternatives
- * @returns {Object}
- */
-export function runMatchingAgent(providerList, timePreference = '', maxPriceThreshold = null) {
-  if (!providerList || providerList.length === 0) {
-    return { ranked: [], reasoning: 'No candidates provided for scoring.' };
+// RANKING WEIGHTS — must sum to 1.0
+const WEIGHTS = {
+  availability:     0.20,
+  on_time_score:    0.18,
+  distance:         0.15,
+  skill_match:      0.15,
+  rating:           0.12,
+  mohalla_trust:    0.10,
+  cancellation:     0.06,
+  price_fit:        0.04
+};
+
+function scoreProvider(provider, intent, userLat, userLng) {
+  const state = provider.simulated_state || {};
+  
+  // 1. Availability score
+  const availabilityScore = state.availability ? 1.0 : 0.0;
+  
+  // 2. On-time score (direct from simulated_state)
+  const onTimeScore = state.on_time_score || 0.5;
+  
+  // 3. Distance score (inverse — closer = higher score)
+  // Max useful distance: 20km = score 0, 0km = score 1.0
+  const distKm = parseFloat(provider.distance_km) || 10;
+  const distanceScore = distKm > 20 ? 0 : Math.max(0, 1 - (distKm / 20));
+  
+  // 4. Skill match score
+  const skillMap = { basic: 0.5, intermediate: 0.75, expert: 1.0 };
+  const skillScore = skillMap[state.skill_level] || 0.6;
+  
+  // 5. Rating decay score (normalize 1-5 to 0-1)
+  const rating = state.rating || provider.rating || 3.5;
+  const ratingScore = Math.max(0, (rating - 1) / 4);
+  
+  // 6. Mohalla trust score (direct)
+  const mohallaScore = state.mohalla_trust_score || 0.5;
+  
+  // 7. Cancellation penalty (inverse — lower cancellation = higher score)
+  const cancellationScore = 1 - (state.cancellation_rate || 0.1);
+  
+  // 8. Price fit score
+  let priceFitScore = 0.5;
+  if (intent.price_sensitivity && state.price_range_pkr) {
+    // Lower price = better fit for price-sensitive users
+    priceFitScore = Math.max(0, 1 - (state.price_range_pkr.min / 3000));
   }
-
-  // Apply price filter refinement if specified (Edge Case C)
-  let eligibleProviders = providerList;
-  if (maxPriceThreshold !== null) {
-    eligibleProviders = providerList.filter((p) => (p.hourlyRate || 0) <= maxPriceThreshold);
-    // Fallback if price filter excludes everyone
-    if (eligibleProviders.length === 0) {
-      eligibleProviders = providerList; // Keep original array to avoid complete pipeline failure
-    }
-  }
-
-  // Find max distance for normalization
-  const maxDistance = Math.max(...eligibleProviders.map((p) => p.distance || 0), 1.0);
-  const maxRating = 5.0;
-
-  const scored = eligibleProviders.map((provider) => {
-    // Proximity Score (0.0 to 1.0)
-    const proximityScore = provider.distance != null
-      ? Math.max(0, 1 - (provider.distance / maxDistance))
-      : 0.5;
-
-    // Rating Normalized (0.0 to 1.0)
-    const ratingNormalized = (provider.rating || 4.0) / maxRating;
-
-    // Availability Score (0.0 to 1.0)
-    const availabilityScore = checkAvailabilityScore(provider.availability, timePreference);
-
-    // Weighted Formula required by instructions:
-    // score = (0.4 × proximity_score) + (0.3 × rating_normalized) + (0.3 × availability_score)
-    const rawScore = (0.4 * proximityScore) + (0.3 * ratingNormalized) + (0.3 * availabilityScore);
-    const totalScore = Math.round(rawScore * 100);
-
-    return {
-      ...provider,
-      scorecard: {
-        proximityScore: parseFloat(proximityScore.toFixed(2)),
-        ratingNormalized: parseFloat(ratingNormalized.toFixed(2)),
-        availabilityScore: parseFloat(availabilityScore.toFixed(2)),
-        formula: "score = (0.4 × proximity_score) + (0.3 × rating_normalized) + (0.3 × availability_score)",
-        total: totalScore,
-      },
-      // Keep flat score property for legacy UI mapping
-      score: totalScore,
-    };
-  });
-
-  // Sort descending by total score
-  scored.sort((a, b) => b.scorecard.total - a.scorecard.total);
-
-  // Generate detailed visible reasoning strings for hackathon evaluation criteria
-  const reasoningLines = scored.map((p, index) => {
-    return `Rank #${index + 1}: ${p.name} | Score: ${p.scorecard.total}/100 | Breakdown: [Proximity: ${p.scorecard.proximityScore}, Rating: ${p.scorecard.ratingNormalized}, Availability: ${p.scorecard.availabilityScore}] | Rate: PKR ${p.hourlyRate}/hr`;
-  });
-
-  const summaryReasoning = `Evaluated ${scored.length} candidates using multi-factor weights. Top choice is "${scored[0]?.name}" with a matching score of ${scored[0]?.scorecard.total}/100.`;
+  
+  // Weighted total
+  const totalScore = (
+    WEIGHTS.availability     * availabilityScore +
+    WEIGHTS.on_time_score    * onTimeScore +
+    WEIGHTS.distance         * distanceScore +
+    WEIGHTS.skill_match      * skillScore +
+    WEIGHTS.rating           * ratingScore +
+    WEIGHTS.mohalla_trust    * mohallaScore +
+    WEIGHTS.cancellation     * cancellationScore +
+    WEIGHTS.price_fit        * priceFitScore
+  );
 
   return {
-    ranked: scored,
-    reasoning: summaryReasoning,
-    fullScorecards: reasoningLines,
+    ...provider,
+    scores: {
+      availability: availabilityScore,
+      on_time: onTimeScore,
+      distance: distanceScore,
+      skill: skillScore,
+      rating: ratingScore,
+      mohalla_trust: mohallaScore,
+      cancellation: cancellationScore,
+      price_fit: priceFitScore
+    },
+    total_score: parseFloat(totalScore.toFixed(3))
   };
 }
 
-/**
- * Determine availability score based on simple preference checks.
- */
-function checkAvailabilityScore(availabilityObj, timePref) {
-  if (!timePref || !availabilityObj) return 1.0;
-
-  const pref = timePref.toLowerCase();
-  // If user expresses immediate or urgent need
-  if (pref.includes('urgent') || pref.includes('abhi') || pref.includes('asap') || pref.includes('today')) {
-    return 1.0; // Assume top priority scheduling
+function generateReasoning(provider, allProviders, rank) {
+  const state = provider.simulated_state || {};
+  const distKm = parseFloat(provider.distance_km || 0).toFixed(1);
+  const rating = (state.rating || 3.5).toFixed(1);
+  const onTime = Math.round((state.on_time_score || 0.5) * 100);
+  const trust = Math.round((state.mohalla_trust_score || 0.5) * 100);
+  
+  if (rank === 0) {
+    const secondBest = allProviders[1];
+    const reasonOverSecond = secondBest ? 
+      (parseFloat(provider.distance_km) < parseFloat(secondBest.distance_km) 
+        ? 'closer location'
+        : 'higher on-time rate') : 'best overall score';
+    
+    return 'Top pick: ' + provider.name + ' (' + distKm + 'km away). ' +
+      'On-time rate: ' + onTime + '%, Rating: ' + rating + '/5, ' +
+      'Neighborhood trust: ' + trust + '%. ' +
+      'Selected over alternatives due to ' + reasonOverSecond + '.';
   }
-
-  // Default high availability confidence for informal economy specialists
-  return 0.9;
+  
+  return 'Alternative #' + rank + ': ' + provider.name + 
+    ' (' + distKm + 'km). Score: ' + provider.total_score + 
+    '. On-time: ' + onTime + '%, Rating: ' + rating + '/5.';
 }
 
-export default { runMatchingAgent };
+async function rankProviders(discoveryResult, intent, traceId = 'default') {
+  const startTime = Date.now();
+  const { providers, user_location } = discoveryResult;
+  
+  if (!providers || providers.length === 0) {
+    return { top_pick: null, alternatives: [], reasoning: 'No providers found' };
+  }
+
+  // Score all providers
+  const scored = providers
+    .map(p => scoreProvider(p, intent, 
+      user_location?.lat, user_location?.lng))
+    .filter(p => p.total_score > 0) // Remove unavailable far providers
+    .sort((a, b) => b.total_score - a.total_score);
+
+  // Generate reasoning for each
+  const ranked = scored.map((provider, index) => ({
+    ...provider,
+    rank: index + 1,
+    reasoning: generateReasoning(provider, scored, index)
+  }));
+
+  const topPick = ranked[0];
+  const alternatives = ranked.slice(1, 3);
+
+  const duration = Date.now() - startTime;
+
+  logStep(
+    traceId, 3, 'ranking-agent',
+    'Scoring ' + providers.length + ' providers with 6-factor algorithm',
+    'Top pick: ' + topPick?.name + 
+      ' (score: ' + topPick?.total_score + 
+      ', distance: ' + topPick?.distance_km + 'km)',
+    'Recommend ' + topPick?.name + ' as best provider',
+    'Ranked ' + ranked.length + ' providers, returning top 3',
+    duration
+  ).catch(console.error);
+
+  return {
+    top_pick: {
+      provider_id: topPick.place_id || topPick.id,
+      name: topPick.name,
+      score: topPick.total_score,
+      distance_km: parseFloat(topPick.distance_km || 0).toFixed(2),
+      rating: (topPick.simulated_state?.rating || 3.5).toFixed(1),
+      available: topPick.simulated_state?.availability,
+      next_slot: topPick.simulated_state?.next_available_slot,
+      price_range: topPick.simulated_state?.price_range_pkr,
+      phone: topPick.phone,
+      location: topPick.location,
+      reasoning: topPick.reasoning,
+      scores_breakdown: topPick.scores
+    },
+    alternatives: alternatives.map(p => ({
+      provider_id: p.place_id || p.id,
+      name: p.name,
+      score: p.total_score,
+      distance_km: parseFloat(p.distance_km || 0).toFixed(2),
+      rating: (p.simulated_state?.rating || 3.5).toFixed(1),
+      reasoning: p.reasoning
+    })),
+    total_scored: ranked.length
+  };
+}
+
+export { rankProviders };

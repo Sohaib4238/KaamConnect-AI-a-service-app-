@@ -1,0 +1,8 @@
+backend/service-account.json
+backend/.env
+backend/node_modules/
+mobile/node_modules/
+mobile/.expo/
+*.db
+*.sqlite
+logs/

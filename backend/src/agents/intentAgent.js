@@ -21,6 +21,11 @@ const ROMAN_URDU_DICT = {
   'beautician': 'BEAUTICIAN',
   'makeup': 'BEAUTICIAN',
   'kal subah': 'TOMORROW_MORNING',
+  'kal raat': 'TOMORROW_NIGHT',
+  'aaj raat': 'TONIGHT',
+  'sham ko': 'EVENING',
+  'raat ko': 'NIGHT',
+  'subah': 'TOMORROW_MORNING',
   'kal': 'TOMORROW',
   'abhi': 'URGENT',
   'fauran': 'URGENT',
@@ -38,7 +43,7 @@ Always respond with this exact JSON structure:
 {
   "service_type": "SERVICE_CATEGORY or null",
   "location": "extracted location string or null",
-  "time_preference": "URGENT|TODAY|TOMORROW_MORNING|TOMORROW|THIS_WEEK|FLEXIBLE or null",
+  "time_preference": "URGENT|TODAY|TODAY_EVENING|TONIGHT|TOMORROW_MORNING|TOMORROW|TOMORROW_EVENING|TOMORROW_NIGHT|THIS_WEEK|FLEXIBLE or null",
   "urgency": "high|medium|low",
   "price_sensitivity": true or false,
   "is_refinement": true or false,
@@ -47,7 +52,17 @@ Always respond with this exact JSON structure:
   "confidence": 0.0 to 1.0,
   "language_detected": "urdu|roman_urdu|english|mixed",
   "clarification_needed": null or "question to ask user if confidence < 0.70"
-}`;
+}
+
+Time mapping guide:
+- 'subah' / 'morning' → TOMORROW_MORNING (10 AM)
+- 'dopahar' / 'afternoon' → TOMORROW (2 PM)  
+- 'sham' / 'evening' → TOMORROW_EVENING (6 PM)
+- 'raat' / 'night' → TOMORROW_NIGHT (8 PM)
+- 'abhi' / 'fauran' → URGENT (next 2 hours)
+- 'aaj' → TODAY
+- 'kal' → TOMORROW
+Combined: 'kal raat' → TOMORROW_NIGHT, 'aaj sham' → TODAY_EVENING`;
 
 export async function parseIntent(userInput, sessionState = {}, traceId = 'default') {
   if (!userInput || typeof userInput !== 'string') {
@@ -73,13 +88,13 @@ Extract the intent and return JSON. If the user is asking for something cheaper 
   const duration = Date.now() - startTime;
 
   if (!result.success) {
-    await logStep(traceId, 1, 'intent-parser',
+    logStep(traceId, 1, 'intent-parser',
       'User input: ' + userInput,
       'Gemini call failed: ' + result.error,
       'Use fallback parsing',
       'Returning low-confidence result',
       duration
-    );
+    ).catch(console.error);
     return {
       service_type: null, location: null,
       time_preference: null, urgency: 'medium',
@@ -94,7 +109,7 @@ Extract the intent and return JSON. If the user is asking for something cheaper 
 
   const intent = { ...result.data, raw_input: userInput };
 
-  await logStep(traceId, 1, 'intent-parser',
+  logStep(traceId, 1, 'intent-parser',
     'User input: ' + userInput,
     'Language: ' + intent.language_detected +
     ', Service: ' + intent.service_type +
@@ -104,7 +119,7 @@ Extract the intent and return JSON. If the user is asking for something cheaper 
       : 'Ask clarification: ' + intent.clarification_needed,
     'Intent extracted with confidence ' + intent.confidence,
     duration
-  );
+  ).catch(console.error);
 
   return intent;
 }
