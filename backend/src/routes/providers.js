@@ -12,15 +12,22 @@ const router = Router();
  */
 router.get('/', async (req, res) => {
   try {
-    const { type, sector, verified, near } = req.query;
+    const { type, sector, verified, near, category, search } = req.query;
     
-    let result;
-    if (type) {
-      result = await providerService.getProvidersByCategory(type);
-    } else if (near) {
-      result = await providerService.getProvidersByLocation(near);
-    } else {
-      result = await providerService.getAllProviders();
+    let result = await providerService.getAllProviders();
+
+    const targetCategory = category || type;
+    if (targetCategory && targetCategory !== 'ALL') {
+      result = result.filter(p => p.service_categories?.includes(targetCategory));
+    }
+
+    if (near) {
+      const hint = near.toLowerCase();
+      result = result.filter(p => {
+        const loc = JSON.stringify(p.location || '').toLowerCase();
+        const name = (p.name || '').toLowerCase();
+        return loc.includes(hint) || name.includes(hint);
+      });
     }
 
     if (sector) {
@@ -29,6 +36,14 @@ router.get('/', async (req, res) => {
 
     if (verified !== undefined) {
       result = result.filter((p) => p.verified === (verified === 'true'));
+    }
+
+    if (search) {
+      const s = search.toLowerCase();
+      result = result.filter(p => 
+        p.name?.toLowerCase().includes(s) ||
+        p.service_categories?.some(c => c.toLowerCase().includes(s))
+      );
     }
 
     res.json({

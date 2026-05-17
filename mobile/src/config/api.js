@@ -71,4 +71,34 @@ export const healthCheck = async () => {
   return response.data;
 };
 
+// Get all providers with optional filter
+export const getProviders = async (category = null, search = null) => {
+  const params = new URLSearchParams();
+  if (category && category !== 'ALL') params.append('category', category);
+  if (search) params.append('search', search);
+  const url = `/api/providers${params.toString() ? '?' + params.toString() : ''}`;
+  const response = await api.get(url);
+  return response.data;
+};
+
+// Get single provider with full details and services
+export const getProviderDetails = async (providerId) => {
+  const response = await api.get(`/api/providers/${providerId}`);
+  return response.data;
+};
+
+// Get available time slots for a provider on a date
+export const getProviderSlots = async (providerId, date) => {
+  const response = await api.get(
+    `/api/providers/${providerId}/slots?date=${date}`
+  );
+  return response.data;
+};
+
+// Manual booking with specific services and slot
+export const createManualBooking = async (bookingData) => {
+  const response = await api.post('/api/manual-book', bookingData);
+  return response.data;
+};
+
 export default api;

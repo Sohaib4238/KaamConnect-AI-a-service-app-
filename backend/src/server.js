@@ -291,6 +291,175 @@ app.post('/api/book', async (req, res) => {
   }
 });
 
+// ── Manual Booking Endpoints ──
+app.get('/api/providers/:providerId', async (req, res) => {
+  try {
+    const doc = await db.collection('providers')
+      .doc(req.params.providerId).get();
+    if (!doc.exists) {
+      return res.status(404).json({ 
+        success: false, error: 'Provider not found' 
+      });
+    }
+    res.json({ success: true, provider: { id: doc.id, ...doc.data() } });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/providers/:providerId/slots', async (req, res) => {
+  try {
+    const { providerId } = req.params;
+    const { date } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({ error: 'date query param required (YYYY-MM-DD)' });
+    }
+    
+    // Get provider's booked slots from Firestore
+    const doc = await db.collection('providers').doc(providerId).get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Provider not found' });
+    }
+    
+    const providerData = doc.data();
+    const bookedSlots = providerData.booked_slots || [];
+    
+    // Generate time slots from 8 AM to 8 PM, 30 minutes apart
+    const slots = [];
+    const targetDate = new Date(date + 'T00:00:00+05:00'); // PKT
+    
+    for (let hour = 8; hour < 20; hour++) {
+      for (let min = 0; min < 60; min += 30) {
+        const slotTime = new Date(targetDate);
+        slotTime.setHours(hour, min, 0, 0);
+        
+        // Skip past slots (if date is today)
+        const now = new Date();
+        if (slotTime <= now) continue;
+        
+        const slotISO = slotTime.toISOString();
+        const isBooked = bookedSlots.some(bs => {
+          const bsTime = new Date(bs);
+          return Math.abs(bsTime - slotTime) < 30 * 60 * 1000;
+        });
+        
+        slots.push({
+          slot_time: slotISO,
+          display_time: slotTime.toLocaleTimeString('en-PK', {
+            hour: '2-digit',
+            minute: '2-digit', 
+            hour12: true,
+            timeZone: 'Asia/Karachi'
+          }),
+          is_available: !isBooked
+        });
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      provider_id: providerId,
+      date,
+      slots,
+      total_available: slots.filter(s => s.is_available).length
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/manual-book', async (req, res) => {
+  try {
+    const { 
+      provider_id, 
+      services,      // array of service objects [{id, name, price}]
+      slot_time,     // ISO string of chosen slot
+      user_details,  // { name, phone, address, address_label }
+      user_id 
+    } = req.body;
+    
+    if (!provider_id || !services || !slot_time || !user_details) {
+      return res.status(400).json({ 
+        error: 'provider_id, services, slot_time, user_details required' 
+      });
+    }
+    
+    // Check slot availability using Firestore transaction
+    const providerRef = db.collection('providers').doc(provider_id);
+    
+    let bookingResult = null;
+    
+    await db.runTransaction(async (transaction) => {
+      const providerDoc = await transaction.get(providerRef);
+      if (!providerDoc.exists) {
+        throw new Error('Provider not found');
+      }
+      
+      const providerData = providerDoc.data();
+      const bookedSlots = providerData.booked_slots || [];
+      
+      // Check if slot is already taken
+      const slotTaken = bookedSlots.some(bs => {
+        const bsTime = new Date(bs);
+        const reqTime = new Date(slot_time);
+        return Math.abs(bsTime - reqTime) < 30 * 60 * 1000;
+      });
+      
+      if (slotTaken) {
+        throw new Error('SLOT_TAKEN');
+      }
+      
+      // Calculate total price
+      const totalPrice = services.reduce((sum, s) => sum + (s.price || 0), 0);
+      
+      // Create booking
+      const bookingId = 'MBK-' + Date.now();
+      const booking = {
+        booking_id: bookingId,
+        booking_type: 'manual',
+        user_id: user_id || 'guest',
+        provider_id,
+        provider_name: providerData.name,
+        service_type: providerData.service_categories?.[0] || 'SERVICE',
+        services_booked: services,
+        slot: slot_time,
+        status: 'confirmed',
+        user_details,
+        total_price: totalPrice,
+        created_at: new Date().toISOString(),
+        trace_id: 'MANUAL-' + Date.now()
+      };
+      
+      // Add slot to provider's booked_slots
+      const updatedBookedSlots = [...bookedSlots, slot_time];
+      
+      // Write both atomically
+      const bookingRef = db.collection('bookings').doc(bookingId);
+      transaction.set(bookingRef, booking);
+      transaction.update(providerRef, { booked_slots: updatedBookedSlots });
+      
+      bookingResult = booking;
+    });
+    
+    res.json({ 
+      status: 'booking_confirmed', 
+      booking: bookingResult,
+      message: 'Booking confirmed successfully'
+    });
+    
+  } catch (error) {
+    if (error.message === 'SLOT_TAKEN') {
+      return res.status(409).json({ 
+        status: 'slot_taken',
+        error: 'This slot was just booked by someone else. Please choose another time.',
+        code: 'SLOT_TAKEN'
+      });
+    }
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // ── Full pipeline (legacy) ──
 app.post('/api/orchestrate', async (req, res) => {
   try {

@@ -7,11 +7,18 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ChatScreen from './src/screens/ChatScreen';
 import ManualBookingScreen from './src/screens/ManualBookingScreen';
+import HomeServicesScreen from './src/screens/HomeServicesScreen';
+import ProvidersListScreen from './src/screens/ProvidersListScreen';
+import ProviderMenuScreen from './src/screens/ProviderMenuScreen';
+import CheckoutScreen from './src/screens/CheckoutScreen';
+import BookingSuccessScreen from './src/screens/BookingSuccessScreen';
+import AddressScreen from './src/screens/AddressScreen';
 import ActiveRequestsScreen from './src/screens/ActiveRequestsScreen';
 import AgentTraceScreen from './src/screens/AgentTraceScreen';
 
 const Tab = createBottomTabNavigator();
 const ChatStack = createStackNavigator();
+const ManualStack = createStackNavigator();
 
 function ChatStackNav() {
   return (
@@ -19,6 +26,20 @@ function ChatStackNav() {
       <ChatStack.Screen name="ChatMain" component={ChatScreen} />
       <ChatStack.Screen name="AgentTrace" component={AgentTraceScreen} />
     </ChatStack.Navigator>
+  );
+}
+
+function ManualBookingStackNav() {
+  return (
+    <ManualStack.Navigator screenOptions={{ headerShown: false }}>
+      <ManualStack.Screen name="ManualBookingHome" component={ManualBookingScreen} />
+      <ManualStack.Screen name="HomeServices" component={HomeServicesScreen} />
+      <ManualStack.Screen name="ProvidersListScreen" component={ProvidersListScreen} />
+      <ManualStack.Screen name="ProviderMenuScreen" component={ProviderMenuScreen} />
+      <ManualStack.Screen name="CheckoutScreen" component={CheckoutScreen} />
+      <ManualStack.Screen name="BookingSuccessScreen" component={BookingSuccessScreen} />
+      <ManualStack.Screen name="AddressScreen" component={AddressScreen} />
+    </ManualStack.Navigator>
   );
 }
 
@@ -31,7 +52,7 @@ const TAB_ICONS = {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor="#0B1015" />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <NavigationContainer>
         <Tab.Navigator
           screenOptions={({ route }) => ({
@@ -41,10 +62,10 @@ export default function App() {
               return <Ionicons name={focused ? active : inactive} size={22} color={color} />;
             },
             tabBarActiveTintColor: '#00C853',
-            tabBarInactiveTintColor: '#5A6A7A',
+            tabBarInactiveTintColor: '#9999AA',
             tabBarStyle: {
-              backgroundColor: '#111920',
-              borderTopColor: '#1E2D3A',
+              backgroundColor: '#FFFFFF',
+              borderTopColor: '#E4E5EF',
               borderTopWidth: 1,
               height: 65,
               paddingBottom: 8,
@@ -64,7 +85,7 @@ export default function App() {
           />
           <Tab.Screen
             name="ManualBooking"
-            component={ManualBookingScreen}
+            component={ManualBookingStackNav}
             options={{ tabBarLabel: '📋 Booking' }}
           />
           <Tab.Screen
@@ -77,3 +98,4 @@ export default function App() {
     </SafeAreaProvider>
   );
 }
+

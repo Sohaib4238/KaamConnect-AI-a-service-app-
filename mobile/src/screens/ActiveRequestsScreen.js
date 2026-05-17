@@ -8,10 +8,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { getBookings, cancelBooking, completeBooking } from '../config/api';
 
 const C = {
-  bg: '#0B1015', surface: '#141C24', card: '#1B2530',
-  primary: '#00C853', text: '#E8ECF0', textSec: '#8B9BAA',
-  textMuted: '#5F7082', border: '#1E2D3A', headerBg: '#111920',
-  warning: '#FFD54F', error: '#FF5252', blue: '#4DA3FF',
+  bg: '#F5F6FA', surface: '#F8F9FC', card: '#FFFFFF',
+  primary: '#00C853', text: '#1A1A2E', textSec: '#555570',
+  textMuted: '#9999AA', border: '#E4E5EF', headerBg: '#FFFFFF',
+  warning: '#FF9500', error: '#F44336', blue: '#2196F3',
 };
 
 const STATUS_MAP = {
@@ -236,19 +236,21 @@ const s = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 14,
     backgroundColor: C.headerBg, borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  headerTitle: { color: '#1A1A2E', fontSize: 18, fontWeight: '700' },
   headerCount: { color: C.textMuted, fontSize: 12, fontWeight: '600' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadText: { color: C.textSec, fontSize: 13, marginTop: 10 },
   list: { padding: 12 },
   sectionHeader: {
-    color: '#fff', fontSize: 14, fontWeight: '800',
+    color: '#1A1A2E', fontSize: 14, fontWeight: '800',
     marginTop: 15, marginBottom: 8, paddingHorizontal: 4,
     textTransform: 'uppercase', letterSpacing: 0.5,
   },
   card: {
     backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
     marginBottom: 14, overflow: 'hidden',
+    shadowColor: '#00000010', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1, shadowRadius: 4, elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -257,7 +259,7 @@ const s = StyleSheet.create({
   statusBadge: { fontSize: 12, fontWeight: '700' },
   bookingId: { color: C.textMuted, fontSize: 10, fontFamily: 'monospace' },
   serviceType: {
-    color: '#fff', fontSize: 17, fontWeight: '800', paddingHorizontal: 14,
+    color: '#1A1A2E', fontSize: 17, fontWeight: '800', paddingHorizontal: 14,
     paddingBottom: 8, letterSpacing: -0.3,
   },
   detailBox: {
@@ -270,17 +272,17 @@ const s = StyleSheet.create({
   actionRow: { flexDirection: 'row', paddingHorizontal: 14, paddingBottom: 10, gap: 8 },
   actionBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.surface, borderRadius: 10, paddingVertical: 8,
+    backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 8,
     borderWidth: 1, borderColor: C.border,
   },
-  actionBtnDanger: { borderColor: 'rgba(255,82,82,0.3)' },
+  actionBtnDanger: { borderColor: C.error, backgroundColor: '#FFFFFF' },
   actionText: { color: C.primary, fontSize: 11, fontWeight: '600' },
   completeBtn: {
-    backgroundColor: 'rgba(0,200,83,0.1)', borderRadius: 10, paddingVertical: 10,
+    backgroundColor: '#00C853', borderRadius: 10, paddingVertical: 10,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: C.primary,
+    borderWidth: 1, borderColor: '#00A843',
   },
-  completeBtnText: { color: C.primary, fontSize: 13, fontWeight: '800' },
+  completeBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   reminderBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     paddingVertical: 8, backgroundColor: C.surface,
@@ -292,7 +294,7 @@ const s = StyleSheet.create({
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  emptyTitle: { color: '#fff', fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  emptyTitle: { color: '#1A1A2E', fontSize: 18, fontWeight: '700', marginBottom: 6 },
   emptySub: { color: C.textSec, fontSize: 13, textAlign: 'center' },
   errorMsg: { color: C.error, fontSize: 12, marginTop: 10, textAlign: 'center' },
 });

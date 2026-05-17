@@ -9,10 +9,10 @@ import { getTraces } from '../config/api';
 import api from '../config/api';
 
 const C = {
-  bg: '#0B1015', surface: '#141C24', card: '#1B2530',
-  primary: '#00C853', text: '#E8ECF0', textSec: '#8B9BAA',
-  textMuted: '#5F7082', border: '#1E2D3A', headerBg: '#111920',
-  blue: '#4DA3FF', googleBlue: '#4285F4', googleBg: 'rgba(66,133,244,0.08)',
+  bg: '#F5F6FA', surface: '#FFFFFF', card: '#FFFFFF',
+  primary: '#00C853', text: '#1A1A2E', textSec: '#555570',
+  textMuted: '#9999AA', border: '#E4E5EF', headerBg: '#FFFFFF',
+  blue: '#2196F3', googleBlue: '#1A73E8', googleBg: '#F1F3F4',
 };
 
 export default function AgentTraceScreen({ navigation }) {
@@ -171,9 +171,9 @@ const s = StyleSheet.create({
 
   // ── Antigravity Platform Card ──
   platformCard: {
-    backgroundColor: C.googleBg,
+    backgroundColor: '#E8F0FE',
     borderRadius: 16, padding: 16, marginBottom: 16,
-    borderWidth: 1.5, borderColor: 'rgba(66,133,244,0.3)',
+    borderWidth: 1.5, borderColor: 'rgba(66,133,244,0.4)',
   },
   platformHeader: {
     flexDirection: 'row', alignItems: 'center', marginBottom: 14,
@@ -185,15 +185,15 @@ const s = StyleSheet.create({
   platformVersion: { color: C.textSec, fontSize: 11, marginTop: 2 },
   liveIndicator: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(0,200,83,0.15)', paddingHorizontal: 8, paddingVertical: 3,
+    backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: 10, borderWidth: 1, borderColor: 'rgba(0,200,83,0.3)',
   },
   liveDot: {
     width: 6, height: 6, borderRadius: 3, backgroundColor: C.primary, marginRight: 4,
   },
-  liveText: { color: C.primary, fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  liveText: { color: '#00A843', fontSize: 9, fontWeight: '800', letterSpacing: 1 },
   sectionLabel: {
-    color: C.textMuted, fontSize: 9, fontWeight: '700', letterSpacing: 1.2,
+    color: '#555570', fontSize: 9, fontWeight: '700', letterSpacing: 1.2,
     marginTop: 10, marginBottom: 6,
   },
   agentsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -208,16 +208,16 @@ const s = StyleSheet.create({
   agentName: { color: C.googleBlue, fontSize: 10, fontWeight: '600' },
   toolsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
   toolBadge: {
-    backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 8, paddingVertical: 4,
+    backgroundColor: '#FFFFFF', paddingHorizontal: 8, paddingVertical: 4,
     borderRadius: 8, borderWidth: 1, borderColor: C.border,
   },
   toolText: { color: C.textSec, fontSize: 9, fontWeight: '600' },
   mcpBadge: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(0,200,83,0.08)', paddingHorizontal: 8, paddingVertical: 4,
+    backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 4,
     borderRadius: 8, borderWidth: 1, borderColor: 'rgba(0,200,83,0.15)',
   },
-  mcpText: { color: C.primary, fontSize: 9, fontWeight: '600' },
+  mcpText: { color: '#00A843', fontSize: 9, fontWeight: '600' },
   roleBox: {
     flexDirection: 'row', alignItems: 'flex-start', marginTop: 12,
     backgroundColor: 'rgba(66,133,244,0.06)', padding: 10, borderRadius: 10,
@@ -228,12 +228,14 @@ const s = StyleSheet.create({
 
   // ── Trace Cards ──
   tracesSectionTitle: {
-    color: C.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 1.2,
+    color: '#1A1A2E', fontSize: 10, fontWeight: '700', letterSpacing: 1.2,
     marginBottom: 8,
   },
   traceCard: {
     backgroundColor: C.card, borderRadius: 14, padding: 14,
     marginBottom: 10, borderWidth: 1, borderColor: C.border,
+    shadowColor: '#00000008', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1, shadowRadius: 3, elevation: 1,
   },
   traceHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   traceId: { color: C.blue, fontSize: 10, fontFamily: 'monospace' },
@@ -242,9 +244,9 @@ const s = StyleSheet.create({
   traceDuration: { color: C.textMuted, fontSize: 11, marginBottom: 8 },
   stepsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   stepBadge: {
-    backgroundColor: 'rgba(0,200,83,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
+    backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
   },
-  stepText: { color: C.primary, fontSize: 10, fontWeight: '600' },
+  stepText: { color: '#00A843', fontSize: 10, fontWeight: '600' },
   empty: { alignItems: 'center', justifyContent: 'center', marginTop: 60 },
   emptyText: { color: C.textMuted, fontSize: 13, marginTop: 12, textAlign: 'center', maxWidth: 240 },
 });
