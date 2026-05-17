@@ -1,0 +1,79 @@
+import React from 'react';
+import { StatusBar } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import ChatScreen from './src/screens/ChatScreen';
+import ManualBookingScreen from './src/screens/ManualBookingScreen';
+import ActiveRequestsScreen from './src/screens/ActiveRequestsScreen';
+import AgentTraceScreen from './src/screens/AgentTraceScreen';
+
+const Tab = createBottomTabNavigator();
+const ChatStack = createStackNavigator();
+
+function ChatStackNav() {
+  return (
+    <ChatStack.Navigator screenOptions={{ headerShown: false }}>
+      <ChatStack.Screen name="ChatMain" component={ChatScreen} />
+      <ChatStack.Screen name="AgentTrace" component={AgentTraceScreen} />
+    </ChatStack.Navigator>
+  );
+}
+
+const TAB_ICONS = {
+  Chat: ['chatbubble-ellipses', 'chatbubble-ellipses-outline'],
+  ManualBooking: ['clipboard', 'clipboard-outline'],
+  ActiveRequests: ['notifications', 'notifications-outline'],
+};
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <StatusBar barStyle="light-content" backgroundColor="#0B1015" />
+      <NavigationContainer>
+        <Tab.Navigator
+          screenOptions={({ route }) => ({
+            headerShown: false,
+            tabBarIcon: ({ focused, color, size }) => {
+              const [active, inactive] = TAB_ICONS[route.name] || ['ellipse', 'ellipse-outline'];
+              return <Ionicons name={focused ? active : inactive} size={22} color={color} />;
+            },
+            tabBarActiveTintColor: '#00C853',
+            tabBarInactiveTintColor: '#5A6A7A',
+            tabBarStyle: {
+              backgroundColor: '#111920',
+              borderTopColor: '#1E2D3A',
+              borderTopWidth: 1,
+              height: 65,
+              paddingBottom: 8,
+              paddingTop: 6,
+            },
+            tabBarLabelStyle: {
+              fontSize: 10,
+              fontWeight: '600',
+              letterSpacing: 0.3,
+            },
+          })}
+        >
+          <Tab.Screen
+            name="Chat"
+            component={ChatStackNav}
+            options={{ tabBarLabel: '💬 AI Chat' }}
+          />
+          <Tab.Screen
+            name="ManualBooking"
+            component={ManualBookingScreen}
+            options={{ tabBarLabel: '📋 Booking' }}
+          />
+          <Tab.Screen
+            name="ActiveRequests"
+            component={ActiveRequestsScreen}
+            options={{ tabBarLabel: '🔔 Requests' }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
+  );
+}
