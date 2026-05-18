@@ -33,9 +33,11 @@ const SERVICES = [
   { label: 'Geyser Services', icon: 'flame-outline', color: '#FF9800', category: 'GEYSER' },
   { label: 'Plumbing', icon: 'water-outline', color: '#00897B', category: 'PLUMBER' },
   { label: 'Electrical', icon: 'flash-outline', color: '#FFC107', category: 'ELECTRICIAN' },
-  { label: 'Home Cleaning', icon: 'sparkles-outline', color: '#E91E63', category: 'CLEANER' },
+  { label: 'Home Cleaning', icon: 'sparkles-outline', color: '#00BCD4', category: 'CLEANER' },
   { label: 'Carpentry', icon: 'hammer-outline', color: '#795548', category: 'CARPENTER' },
   { label: 'Painting', icon: 'brush-outline', color: '#9C27B0', category: 'PAINTER' },
+  { label: 'Beauticians', icon: 'rose-outline', color: '#E91E63', category: 'BEAUTICIAN' },
+  { label: 'Tutors', icon: 'book-outline', color: '#FF5722', category: 'TUTOR' },
   { label: 'Appliance Repair', icon: 'construct-outline', color: '#607D8B', category: 'APPLIANCE_REPAIR' },
   { label: 'Smart Home', icon: 'keypad-outline', color: '#3F51B5', category: 'SMART_HOME' },
 ];

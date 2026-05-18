@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 
 const C = {
@@ -33,6 +33,53 @@ export default function AddressScreen({ navigation }) {
   const [showMap, setShowMap] = useState(false);
   const [reverseGeoAddress, setReverseGeoAddress] = useState('');
 
+  const GOOGLE_MAPS_API_KEY = 'AIzaSyD4ar1JvuWVEgClUXjxW87KfpT3Sx9kfuA';
+
+  const reverseGeocode = async (latitude, longitude) => {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        return data.results;
+      }
+    } catch (e) {
+      console.error('REST reverse geocode failed:', e);
+    }
+    return null;
+  };
+
+  const handleRegionChangeComplete = async (region) => {
+    setMapRegion(region);
+    setSelectedCoords({
+      latitude: region.latitude,
+      longitude: region.longitude
+    });
+    
+    const results = await reverseGeocode(region.latitude, region.longitude);
+    if (results && results.length > 0) {
+      const formattedAddress = results[0].formatted_address;
+      setReverseGeoAddress(formattedAddress);
+      
+      const components = results[0].address_components;
+      const locality = components.find(c => c.types.includes('locality'))?.long_name;
+      
+      setNewAddress(prev => ({
+        ...prev,
+        address: formattedAddress,
+        city: locality || 'Karachi'
+      }));
+
+      // Store resolved area name globally
+      const sublocality_comp = components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
+      const locality_comp = components.find(c => c.types.includes('locality'))?.long_name;
+      const areaName = sublocality_comp ? `${sublocality_comp}, ${locality_comp}` : locality_comp;
+      if (areaName) {
+        await AsyncStorage.setItem('userArea', areaName);
+      }
+    }
+  };
+
   const getCurrentLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -50,21 +97,28 @@ export default function AddressScreen({ navigation }) {
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       });
-      // Reverse geocode to get address string
-      const [place] = await Location.reverseGeocodeAsync(coords);
-      if (place) {
-        const addr = [
-          place.streetNumber,
-          place.street,
-          place.district,
-          place.city
-        ].filter(Boolean).join(', ');
-        setReverseGeoAddress(addr);
+      
+      const results = await reverseGeocode(coords.latitude, coords.longitude);
+      if (results && results.length > 0) {
+        const formattedAddress = results[0].formatted_address;
+        setReverseGeoAddress(formattedAddress);
+        
+        const components = results[0].address_components;
+        const locality = components.find(c => c.types.includes('locality'))?.long_name;
+        
         setNewAddress(prev => ({ 
           ...prev, 
-          address: addr,
-          city: place.city || 'Karachi'
+          address: formattedAddress,
+          city: locality || 'Karachi'
         }));
+
+        // Store userArea
+        const sublocality_comp = components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
+        const locality_comp = components.find(c => c.types.includes('locality'))?.long_name;
+        const areaName = sublocality_comp ? `${sublocality_comp}, ${locality_comp}` : locality_comp;
+        if (areaName) {
+          await AsyncStorage.setItem('userArea', areaName);
+        }
       }
       setShowMap(true);
     } catch (error) {
@@ -75,21 +129,33 @@ export default function AddressScreen({ navigation }) {
   const onMapPress = async (e) => {
     const coords = e.nativeEvent.coordinate;
     setSelectedCoords(coords);
+    setMapRegion(prev => ({
+      ...prev,
+      latitude: coords.latitude,
+      longitude: coords.longitude
+    }));
     try {
-      const [place] = await Location.reverseGeocodeAsync(coords);
-      if (place) {
-        const addr = [
-          place.streetNumber,
-          place.street,
-          place.district,
-          place.city
-        ].filter(Boolean).join(', ');
-        setReverseGeoAddress(addr);
+      const results = await reverseGeocode(coords.latitude, coords.longitude);
+      if (results && results.length > 0) {
+        const formattedAddress = results[0].formatted_address;
+        setReverseGeoAddress(formattedAddress);
+        
+        const components = results[0].address_components;
+        const locality = components.find(c => c.types.includes('locality'))?.long_name;
+        
         setNewAddress(prev => ({
           ...prev,
-          address: addr,
-          city: place.city || prev.city
+          address: formattedAddress,
+          city: locality || prev.city
         }));
+
+        // Store userArea
+        const sublocality_comp = components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
+        const locality_comp = components.find(c => c.types.includes('locality'))?.long_name;
+        const areaName = sublocality_comp ? `${sublocality_comp}, ${locality_comp}` : locality_comp;
+        if (areaName) {
+          await AsyncStorage.setItem('userArea', areaName);
+        }
       }
     } catch (error) {
       console.error('[Map] Reverse geocode error:', error);
@@ -105,7 +171,20 @@ export default function AddressScreen({ navigation }) {
       const val = await AsyncStorage.getItem('saved_addresses');
       if (val) setAddresses(JSON.parse(val));
       const sel = await AsyncStorage.getItem('selected_address');
-      if (sel) setSelectedAddressId(JSON.parse(sel).id);
+      if (sel) {
+        const parsed = JSON.parse(sel);
+        setSelectedAddressId(parsed.id);
+        if (parsed.address) {
+          const parts = parsed.address.split(',').map(p => p.trim());
+          let area = parsed.city;
+          if (parts.length > 2) {
+            area = `${parts[parts.length - 2]}, ${parsed.city}`;
+          } else if (parts.length > 1) {
+            area = `${parts[0]}, ${parsed.city}`;
+          }
+          await AsyncStorage.setItem('userArea', area);
+        }
+      }
     } catch (e) {
       console.error('Failed to load addresses:', e);
     }
@@ -114,6 +193,16 @@ export default function AddressScreen({ navigation }) {
   const selectAddress = async (addr) => {
     setSelectedAddressId(addr.id);
     await AsyncStorage.setItem('selected_address', JSON.stringify(addr));
+    if (addr.address) {
+      const parts = addr.address.split(',').map(p => p.trim());
+      let area = addr.city;
+      if (parts.length > 2) {
+        area = `${parts[parts.length - 2]}, ${addr.city}`;
+      } else if (parts.length > 1) {
+        area = `${parts[0]}, ${addr.city}`;
+      }
+      await AsyncStorage.setItem('userArea', area);
+    }
     navigation.goBack();
   };
 
@@ -134,6 +223,17 @@ export default function AddressScreen({ navigation }) {
     // Automatically select the newly created address
     setSelectedAddressId(addr.id);
     await AsyncStorage.setItem('selected_address', JSON.stringify(addr));
+
+    if (addr.address) {
+      const parts = addr.address.split(',').map(p => p.trim());
+      let area = addr.city;
+      if (parts.length > 2) {
+        area = `${parts[parts.length - 2]}, ${addr.city}`;
+      } else if (parts.length > 1) {
+        area = `${parts[0]}, ${addr.city}`;
+      }
+      await AsyncStorage.setItem('userArea', area);
+    }
 
     setShowAddForm(false);
     setNewAddress({ label: 'Home', address: '', city: 'Karachi', details: '' });
@@ -210,9 +310,10 @@ export default function AddressScreen({ navigation }) {
             {showMap && (
               <View style={s.mapWrap}>
                 <MapView
+                  provider={PROVIDER_GOOGLE}
                   style={s.map}
                   region={mapRegion}
-                  onRegionChangeComplete={setMapRegion}
+                  onRegionChangeComplete={handleRegionChangeComplete}
                   onPress={onMapPress}
                   showsUserLocation={true}
                   showsMyLocationButton={false}

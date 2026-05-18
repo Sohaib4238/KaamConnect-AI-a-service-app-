@@ -199,6 +199,40 @@ export default function ProviderMenuScreen({ route, navigation }) {
                 ))}
               </View>
             ))}
+
+            {/* Special "Not sure? Request Visit" Option */}
+            <View style={s.visitCard}>
+              <View style={s.visitCardHeaderRow}>
+                <Ionicons name="help-circle" size={24} color="#0288D1" />
+                <Text style={s.visitCardTitle}>Not sure what you need?</Text>
+              </View>
+              <Text style={s.visitCardDesc}>
+                Get an on-site expert assessment. The provider will visit, diagnose the problem, and give a customized quote.
+              </Text>
+              <TouchableOpacity
+                style={s.visitBtn}
+                onPress={() => {
+                  const visitQuoteService = {
+                    id: 'visit_quote',
+                    serviceId: 'visit_quote',
+                    serviceName: 'On-site Assessment & Quote',
+                    name: 'On-site Assessment & Quote',
+                    price: 0,
+                    duration: 0,
+                    qty: 1,
+                    isVisitQuote: true,
+                  };
+                  navigation.navigate('CheckoutScreen', {
+                    cart: [visitQuoteService],
+                    provider,
+                    source: route.params?.source || 'manual'
+                  });
+                }}
+              >
+                <Text style={s.visitBtnText}>Request Visit & Quote</Text>
+                <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ marginLeft: 4 }} />
+              </TouchableOpacity>
+            </View>
           </ScrollView>
 
           {/* Sticky Bottom Bar */}
@@ -382,5 +416,45 @@ const s = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4
   },
-  cartBarBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' }
+  cartBarBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  visitCard: {
+    backgroundColor: '#E3F2FD',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#B3E5FC',
+    padding: 16,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  visitCardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  visitCardTitle: {
+    color: '#01579B',
+    fontSize: 15,
+    fontWeight: '750',
+    marginLeft: 8,
+  },
+  visitCardDesc: {
+    color: '#0277BD',
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  visitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0288D1',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+  },
+  visitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  }
 });

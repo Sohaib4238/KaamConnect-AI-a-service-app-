@@ -139,18 +139,32 @@ export default function CheckoutScreen({ route, navigation }) {
     }));
     
     try {
+      const isVisitQuote = cart.some(c => c.isVisitQuote);
       const result = await createManualBooking({
         provider_id: provider.id || provider.place_id,
-        services: cart.map(c => ({ id: c.id, name: c.name, price: c.price * c.qty })),
+        services: cart.map(c => ({
+          id: c.id,
+          name: c.name,
+          price: c.isVisitQuote ? 0 : c.price * c.qty,
+          isVisitQuote: c.isVisitQuote || false
+        })),
         slot_time: selectedSlot.slot_time,
         user_details: userDetails,
-        user_id: user?.uid || 'guest'
+        user_id: user?.uid || 'guest',
+        isVisitQuote: isVisitQuote
       });
       
       if (result.status === 'booking_confirmed') {
         navigation.replace('BookingSuccessScreen', { 
-          booking: result.booking,
-          provider 
+          booking: {
+            ...result.booking,
+            services_booked: result.booking.services_booked?.map((s, idx) => ({
+              ...s,
+              isVisitQuote: cart[idx]?.isVisitQuote || false
+            })) || []
+          },
+          provider,
+          source: route.params?.source
         });
       }
     } catch (error) {
@@ -196,14 +210,16 @@ export default function CheckoutScreen({ route, navigation }) {
                 {item.name} {item.qty > 1 ? `×${item.qty}` : ''}
               </Text>
               <Text style={s.orderItemPrice}>
-                PKR {(item.price * item.qty).toLocaleString()}
+                {item.isVisitQuote ? 'To be quoted on-site' : `PKR ${(item.price * item.qty).toLocaleString()}`}
               </Text>
             </View>
           ))}
           <View style={s.divider} />
           <View style={s.totalRow}>
             <Text style={s.totalLabel}>Total</Text>
-            <Text style={s.totalAmount}>PKR {totalCartPrice.toLocaleString()}</Text>
+            <Text style={s.totalAmount}>
+              {cart.some(c => c.isVisitQuote) ? 'TBD' : `PKR ${totalCartPrice.toLocaleString()}`}
+            </Text>
           </View>
         </View>
 
@@ -319,7 +335,9 @@ export default function CheckoutScreen({ route, navigation }) {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={s.confirmBtnText}>
-              Confirm Booking — PKR {totalCartPrice.toLocaleString()}
+              {cart.some(c => c.isVisitQuote) 
+                ? 'Request Visit' 
+                : `Confirm Booking — PKR ${totalCartPrice.toLocaleString()}`}
             </Text>
           )}
         </TouchableOpacity>

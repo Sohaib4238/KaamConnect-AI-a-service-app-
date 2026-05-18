@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { discoverProviders, bookProvider } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -218,7 +219,16 @@ export default function ChatScreen({ navigation }) {
           }
 
           if (chosen) {
-            await handleBooking(chosen);
+            navigation.navigate('ManualBooking', {
+              screen: 'ProviderMenuScreen',
+              params: {
+                providerId: chosen.provider_id || chosen.id,
+                providerName: chosen.name,
+                source: 'aiChat',
+                pendingIntent: pendingData?.intent,
+                pendingTraceId: pendingData?.trace_id,
+              }
+            });
           } else {
             add({
               id: uid(), type: 'bot', timestamp: ts(),
@@ -242,8 +252,9 @@ export default function ChatScreen({ navigation }) {
       }
 
       // ── Stage 1+2+3: Discover providers ──
-      // Intercept if no GPS and no location in message
-      if (locationStatus === 'denied' && !hasLocationInMessage(text)) {
+      // Intercept if no GPS and no location in message (and no stored userArea)
+      const storedArea = await AsyncStorage.getItem('userArea');
+      if (locationStatus === 'denied' && !hasLocationInMessage(text) && !storedArea) {
         drop(thinkId);
         add({
           id: uid(), type: 'bot', timestamp: ts(),
@@ -270,7 +281,18 @@ export default function ChatScreen({ navigation }) {
 
   // ── DISCOVER PROVIDERS (reusable) ─────────────
   const handleNewServiceRequest = async (text, thinkId) => {
-    const result = await discoverProviders(text, userLocation);
+    let enrichedText = text;
+    try {
+      const userArea = await AsyncStorage.getItem('userArea');
+      const locationMentioned = /karachi|clifton|gulshan|defence|dha|nazimabad|korangi|malir|saddar|pechs|bahadurabad|islamabad|g-13|f-7|f-6|g-11|i-8/i.test(text);
+      if (!locationMentioned && userArea) {
+        enrichedText = `${text} (User is located in: ${userArea})`;
+      }
+    } catch (e) {
+      console.log('Failed to check userArea in ChatScreen:', e);
+    }
+
+    const result = await discoverProviders(enrichedText, userLocation);
     drop(thinkId);
 
     if (result.status === 'needs_clarification') {
@@ -370,7 +392,16 @@ export default function ChatScreen({ navigation }) {
   const selectProvider = (provider) => {
     if (stage !== 'providers_shown' || loading) return;
     add({ id: uid(), type: 'user', text: `${provider.name} select kiya`, timestamp: ts() });
-    handleBooking(provider);
+    navigation.navigate('ManualBooking', {
+      screen: 'ProviderMenuScreen',
+      params: {
+        providerId: provider.provider_id || provider.id,
+        providerName: provider.name,
+        source: 'aiChat',
+        pendingIntent: pendingData?.intent,
+        pendingTraceId: pendingData?.trace_id,
+      }
+    });
   };
 
   // ── RENDER FUNCTIONS ──────────────────────────

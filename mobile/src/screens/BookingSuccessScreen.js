@@ -96,14 +96,24 @@ export default function BookingSuccessScreen({ route, navigation }) {
           
           <View style={s.priceRow}>
             <Text style={s.priceLabel}>Amount Paid / Due</Text>
-            <Text style={s.priceAmount}>PKR {booking?.total_price?.toLocaleString()}</Text>
+            <Text style={s.priceAmount}>
+              {booking?.services_booked?.some(s => s.isVisitQuote) 
+                ? 'TBD' 
+                : `PKR ${booking?.total_price?.toLocaleString()}`}
+            </Text>
           </View>
         </View>
         
         {/* Buttons */}
         <TouchableOpacity 
           style={s.homeBtn}
-          onPress={() => navigation.navigate('ManualBookingHome')}
+          onPress={() => {
+            if (route.params?.source === 'aiChat') {
+              navigation.navigate('Chat', { screen: 'ChatMain' });
+            } else {
+              navigation.navigate('ManualBookingHome');
+            }
+          }}
         >
           <Text style={s.homeBtnText}>Back to Home</Text>
         </TouchableOpacity>
