@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getProviderSlots, createManualBooking } from '../config/api';
+import { useAuth } from '../context/AuthContext';
 
 const C = {
   bg: '#F5F6FA', surface: '#FFFFFF', card: '#FFFFFF', primary: '#00C853',
@@ -23,6 +24,7 @@ const C = {
 
 export default function CheckoutScreen({ route, navigation }) {
   const { cart = [], provider = {} } = route.params || {};
+  const { user, userProfile } = useAuth();
 
   const [userDetails, setUserDetails] = useState({
     name: '', phone: '', address: '', address_label: 'Home'
@@ -50,6 +52,17 @@ export default function CheckoutScreen({ route, navigation }) {
     tomorrow.setDate(tomorrow.getDate() + 1);
     setSelectedDate(tomorrow.toISOString().split('T')[0]);
   }, []);
+
+  // Prefill details from authenticated profile
+  useEffect(() => {
+    if (userProfile) {
+      setUserDetails(prev => ({
+        ...prev,
+        name: userProfile.name || prev.name,
+        phone: userProfile.phone || prev.phone,
+      }));
+    }
+  }, [userProfile]);
 
   // Listen for focus to refresh address when returning from AddressScreen
   useEffect(() => {
@@ -131,7 +144,7 @@ export default function CheckoutScreen({ route, navigation }) {
         services: cart.map(c => ({ id: c.id, name: c.name, price: c.price * c.qty })),
         slot_time: selectedSlot.slot_time,
         user_details: userDetails,
-        user_id: 'mobile-user'
+        user_id: user?.uid || 'guest'
       });
       
       if (result.status === 'booking_confirmed') {

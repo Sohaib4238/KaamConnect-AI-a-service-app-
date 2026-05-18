@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 const C = {
   bg: '#F5F6FA', surface: '#FFFFFF', card: '#FFFFFF', primary: '#00C853',
@@ -20,6 +22,79 @@ export default function AddressScreen({ navigation }) {
     label: 'Home', address: '', city: 'Karachi', details: ''
   });
   const [selectedAddressId, setSelectedAddressId] = useState(null);
+
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 24.8607,   // Default Karachi
+    longitude: 67.0011,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  });
+  const [selectedCoords, setSelectedCoords] = useState(null);
+  const [showMap, setShowMap] = useState(false);
+  const [reverseGeoAddress, setReverseGeoAddress] = useState('');
+
+  const getCurrentLocation = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced
+      });
+      const coords = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+      setSelectedCoords(coords);
+      setMapRegion({
+        ...coords,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+      // Reverse geocode to get address string
+      const [place] = await Location.reverseGeocodeAsync(coords);
+      if (place) {
+        const addr = [
+          place.streetNumber,
+          place.street,
+          place.district,
+          place.city
+        ].filter(Boolean).join(', ');
+        setReverseGeoAddress(addr);
+        setNewAddress(prev => ({ 
+          ...prev, 
+          address: addr,
+          city: place.city || 'Karachi'
+        }));
+      }
+      setShowMap(true);
+    } catch (error) {
+      console.error('[Map] Location error:', error);
+    }
+  };
+
+  const onMapPress = async (e) => {
+    const coords = e.nativeEvent.coordinate;
+    setSelectedCoords(coords);
+    try {
+      const [place] = await Location.reverseGeocodeAsync(coords);
+      if (place) {
+        const addr = [
+          place.streetNumber,
+          place.street,
+          place.district,
+          place.city
+        ].filter(Boolean).join(', ');
+        setReverseGeoAddress(addr);
+        setNewAddress(prev => ({
+          ...prev,
+          address: addr,
+          city: place.city || prev.city
+        }));
+      }
+    } catch (error) {
+      console.error('[Map] Reverse geocode error:', error);
+    }
+  };
 
   useEffect(() => {
     loadAddresses();
@@ -121,6 +196,50 @@ export default function AddressScreen({ navigation }) {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Map picker */}
+            <TouchableOpacity
+              style={s.mapPickerBtn}
+              onPress={getCurrentLocation}>
+              <Ionicons name="locate" size={18} color="#00C853" />
+              <Text style={s.mapPickerBtnText}>
+                📍 Use my current location
+              </Text>
+            </TouchableOpacity>
+
+            {showMap && (
+              <View style={s.mapWrap}>
+                <MapView
+                  style={s.map}
+                  region={mapRegion}
+                  onRegionChangeComplete={setMapRegion}
+                  onPress={onMapPress}
+                  showsUserLocation={true}
+                  showsMyLocationButton={false}
+                >
+                  {selectedCoords && (
+                    <Marker
+                      coordinate={selectedCoords}
+                      title="Service location"
+                      pinColor="#00C853"
+                    />
+                  )}
+                </MapView>
+                <View style={s.mapHint}>
+                  <Text style={s.mapHintText}>
+                    Tap anywhere on map to adjust location
+                  </Text>
+                </View>
+                {reverseGeoAddress ? (
+                  <View style={s.mapAddressBar}>
+                    <Ionicons name="location" size={16} color="#00C853" />
+                    <Text style={s.mapAddressText} numberOfLines={2}>
+                      {reverseGeoAddress}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            )}
 
             {/* Inputs */}
             <Text style={s.inputLabel}>Street Address</Text>
@@ -319,5 +438,34 @@ const s = StyleSheet.create({
   addrText: { color: C.textSec, fontSize: 12, lineHeight: 16 },
   addrDetails: { color: C.textMuted, fontSize: 11, marginTop: 2, fontStyle: 'italic' },
   checkIcon: { marginRight: 8 },
-  deleteBtn: { padding: 8 }
+  deleteBtn: { padding: 8 },
+  mapPickerBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#E8F5E9', borderRadius: 12,
+    padding: 14, marginBottom: 12, gap: 8,
+    borderWidth: 1, borderColor: '#C8E6C9',
+  },
+  mapPickerBtnText: { 
+    color: '#00A843', fontWeight: '700', fontSize: 14 
+  },
+  mapWrap: {
+    borderRadius: 14, overflow: 'hidden',
+    marginBottom: 12, borderWidth: 1,
+    borderColor: '#E4E5EF', height: 220,
+  },
+  map: { width: '100%', height: 180 },
+  mapHint: {
+    backgroundColor: '#F5F6FA', padding: 6,
+    alignItems: 'center',
+  },
+  mapHintText: { fontSize: 11, color: '#9999AA' },
+  mapAddressBar: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFFFFF', padding: 10,
+    borderTopWidth: 1, borderTopColor: '#E4E5EF',
+    gap: 6,
+  },
+  mapAddressText: { 
+    flex: 1, fontSize: 12, color: '#555570' 
+  }
 });

@@ -10,8 +10,32 @@ const router = Router();
  */
 router.get('/', async (req, res) => {
   try {
+    const { user_id, status } = req.query;
     const snapshot = await db.collection(BOOKINGS).get();
-    const bookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let bookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Sort by created_at descending
+    bookings.sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+      const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+      return dateB - dateA;
+    });
+
+    // Filter by user_id
+    if (user_id && user_id !== 'mobile-user') {
+      bookings = bookings.filter(b => b.user_id === user_id);
+    }
+
+    // Filter by status
+    if (status) {
+      bookings = bookings.filter(b => b.status === status);
+    }
+
+    // Apply limit if not filtering by user
+    if (!user_id && bookings.length > 50) {
+      bookings = bookings.slice(0, 50);
+    }
+
     res.json({ success: true, count: bookings.length, bookings });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getBookings, cancelBooking, completeBooking } from '../config/api';
+import { useAuth } from '../context/AuthContext';
 
 const C = {
   bg: '#F5F6FA', surface: '#F8F9FC', card: '#FFFFFF',
@@ -22,6 +23,7 @@ const STATUS_MAP = {
 };
 
 export default function ActiveRequestsScreen() {
+  const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -30,7 +32,7 @@ export default function ActiveRequestsScreen() {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const data = await getBookings();
+      const data = await getBookings(user?.uid || 'mobile-user');
       const list = data.bookings || [];
       list.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
       setBookings(list);

@@ -22,7 +22,9 @@
           "locationAlwaysAndWhenInUsePermission": "KaamConnect needs your location to find nearby service providers.",
           "locationWhenInUsePermission": "KaamConnect needs your location to find nearby service providers."
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin",
+      "expo-web-browser"
     ],
     "ios": {
       "supportsTablet": true,

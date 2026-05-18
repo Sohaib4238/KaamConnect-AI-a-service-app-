@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { discoverProviders, bookProvider } from '../config/api';
+import { useAuth } from '../context/AuthContext';
 
 const C = {
   bg: '#F5F6FA',
@@ -83,6 +84,7 @@ const SERVICES_NEEDING_PARTS = [
 ];
 
 export default function ChatScreen({ navigation }) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState([GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -186,6 +188,19 @@ export default function ChatScreen({ navigation }) {
     add({ id: thinkId, type: 'thinking', text: '', timestamp: ts() });
 
     try {
+      // ── If awaiting location ──
+      if (stage === 'awaiting_location' && pendingData?.originalPrompt) {
+        drop(thinkId);
+        const originalPrompt = pendingData.originalPrompt;
+        const combinedPrompt = `${originalPrompt} in ${text}`;
+        setStage('idle');
+        setPendingData(null);
+        await handleNewServiceRequest(combinedPrompt, thinkId);
+        setLoading(false);
+        cleanup();
+        return;
+      }
+
       // ── If providers already shown, check if selecting or new request ──
       if (stage === 'providers_shown' && pendingData) {
         if (isProviderSelection(text)) {
@@ -227,12 +242,18 @@ export default function ChatScreen({ navigation }) {
       }
 
       // ── Stage 1+2+3: Discover providers ──
-      // Warn if no GPS and no location in message
+      // Intercept if no GPS and no location in message
       if (locationStatus === 'denied' && !hasLocationInMessage(text)) {
+        drop(thinkId);
         add({
           id: uid(), type: 'bot', timestamp: ts(),
-          text: '📍 Location access denied. Apne message mein area zaroor likhein (e.g. "DHA Karachi mein") taake behtar results mil sakein.',
+          text: 'Kripya apna area batain (e.g. DHA Phase 6 ya Gulshan-e-Iqbal) taake hum aapko qareeb ke providers dikha sakein. 📍',
         });
+        setStage('awaiting_location');
+        setPendingData({ originalPrompt: text });
+        setLoading(false);
+        cleanup();
+        return;
       }
       await handleNewServiceRequest(text, thinkId);
     } catch (err) {
@@ -293,7 +314,7 @@ export default function ChatScreen({ navigation }) {
     });
     setLoading(true);
     try {
-      const result = await bookProvider(provider, pendingData.intent, pendingData.trace_id);
+      const result = await bookProvider(provider, pendingData.intent, pendingData.trace_id, user?.uid || 'mobile-user');
       console.log('[BookResult] slot:', result.booking?.slot);
       console.log('[BookResult] full booking:', JSON.stringify(result.booking));
       if (result.status === 'booking_confirmed') {

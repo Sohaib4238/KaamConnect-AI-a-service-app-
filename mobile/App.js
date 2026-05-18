@@ -1,5 +1,5 @@
 import React from 'react';
-import { StatusBar } from 'react-native';
+import { StatusBar, View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -15,6 +15,9 @@ import BookingSuccessScreen from './src/screens/BookingSuccessScreen';
 import AddressScreen from './src/screens/AddressScreen';
 import ActiveRequestsScreen from './src/screens/ActiveRequestsScreen';
 import AgentTraceScreen from './src/screens/AgentTraceScreen';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
+import AuthScreen from './src/screens/AuthScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 const ChatStack = createStackNavigator();
@@ -39,6 +42,7 @@ function ManualBookingStackNav() {
       <ManualStack.Screen name="CheckoutScreen" component={CheckoutScreen} />
       <ManualStack.Screen name="BookingSuccessScreen" component={BookingSuccessScreen} />
       <ManualStack.Screen name="AddressScreen" component={AddressScreen} />
+      <ManualStack.Screen name="ProfileScreen" component={ProfileScreen} />
     </ManualStack.Navigator>
   );
 }
@@ -49,52 +53,80 @@ const TAB_ICONS = {
   ActiveRequests: ['notifications', 'notifications-outline'],
 };
 
+function AppNavigator() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ 
+        flex: 1, justifyContent: 'center', 
+        alignItems: 'center', backgroundColor: '#FFFFFF' 
+      }}>
+        <ActivityIndicator size="large" color="#00C853" />
+        <Text style={{ 
+          marginTop: 16, color: '#9999AA', fontSize: 14 
+        }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  return (
+    <NavigationContainer>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarIcon: ({ focused, color, size }) => {
+            const [active, inactive] = TAB_ICONS[route.name] || ['ellipse', 'ellipse-outline'];
+            return <Ionicons name={focused ? active : inactive} size={22} color={color} />;
+          },
+          tabBarActiveTintColor: '#00C853',
+          tabBarInactiveTintColor: '#9999AA',
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            borderTopColor: '#E4E5EF',
+            borderTopWidth: 1,
+            height: 65,
+            paddingBottom: 8,
+            paddingTop: 6,
+          },
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: '600',
+            letterSpacing: 0.3,
+          },
+        })}
+      >
+        <Tab.Screen
+          name="Chat"
+          component={ChatStackNav}
+          options={{ tabBarLabel: '💬 AI Chat' }}
+        />
+        <Tab.Screen
+          name="ManualBooking"
+          component={ManualBookingStackNav}
+          options={{ tabBarLabel: '📋 Booking' }}
+        />
+        <Tab.Screen
+          name="ActiveRequests"
+          component={ActiveRequestsScreen}
+          options={{ tabBarLabel: '🔔 Requests' }}
+        />
+      </Tab.Navigator>
+    </NavigationContainer>
+  );
+}
+
 export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      <NavigationContainer>
-        <Tab.Navigator
-          screenOptions={({ route }) => ({
-            headerShown: false,
-            tabBarIcon: ({ focused, color, size }) => {
-              const [active, inactive] = TAB_ICONS[route.name] || ['ellipse', 'ellipse-outline'];
-              return <Ionicons name={focused ? active : inactive} size={22} color={color} />;
-            },
-            tabBarActiveTintColor: '#00C853',
-            tabBarInactiveTintColor: '#9999AA',
-            tabBarStyle: {
-              backgroundColor: '#FFFFFF',
-              borderTopColor: '#E4E5EF',
-              borderTopWidth: 1,
-              height: 65,
-              paddingBottom: 8,
-              paddingTop: 6,
-            },
-            tabBarLabelStyle: {
-              fontSize: 10,
-              fontWeight: '600',
-              letterSpacing: 0.3,
-            },
-          })}
-        >
-          <Tab.Screen
-            name="Chat"
-            component={ChatStackNav}
-            options={{ tabBarLabel: '💬 AI Chat' }}
-          />
-          <Tab.Screen
-            name="ManualBooking"
-            component={ManualBookingStackNav}
-            options={{ tabBarLabel: '📋 Booking' }}
-          />
-          <Tab.Screen
-            name="ActiveRequests"
-            component={ActiveRequestsScreen}
-            options={{ tabBarLabel: '🔔 Requests' }}
-          />
-        </Tab.Navigator>
-      </NavigationContainer>
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

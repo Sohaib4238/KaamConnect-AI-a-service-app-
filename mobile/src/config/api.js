@@ -44,8 +44,9 @@ export const completeBooking = async (bookingId) => {
 };
 
 // Fetch bookings via backend API (avoids Firebase Web SDK issues)
-export const getBookings = async () => {
-  const response = await api.get('/api/bookings');
+export const getBookings = async (userId = null) => {
+  const url = userId ? `/api/bookings?user_id=${userId}` : '/api/bookings';
+  const response = await api.get(url);
   return response.data;
 };
 
