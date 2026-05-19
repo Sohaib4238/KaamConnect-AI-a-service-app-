@@ -152,7 +152,7 @@ export default function ChatScreen({ navigation, route }) {
             return;
           }
         }
-        
+
         // Initial setup
         const initialId = uid();
         const initialSession = {
@@ -355,7 +355,7 @@ export default function ChatScreen({ navigation, route }) {
           timestamp: ts(),
           text: '💖 Bohat shukriya confirm karne ka! Booking status database mein COMPLETE mark ho chuki hai. Stay blessed! ✨'
         });
-        
+
         // Append rating prompt
         setTimeout(() => {
           add({
@@ -379,7 +379,7 @@ export default function ChatScreen({ navigation, route }) {
         timestamp: ts(),
         text: '💖 Bohat shukriya confirm karne ka! Agar aapko koi aur madad chahiye ho toh humein chat mein likhein. Stay blessed! ✨'
       });
-      
+
       // Append rating prompt as fallback
       setTimeout(() => {
         add({
@@ -460,16 +460,16 @@ export default function ChatScreen({ navigation, route }) {
       const request = route.params.pendingRequest;
       // Clear route params so this only runs once
       navigation.setParams({ addressUpdated: undefined, pendingRequest: undefined });
-      
+
       const proceedAfterNewAddress = async () => {
         const savedAddrStr = await AsyncStorage.getItem('selected_address');
         const savedAddress = savedAddrStr ? JSON.parse(savedAddrStr) : null;
-        
+
         if (savedAddress) {
           await handleAddressConfirmed(savedAddress, request);
         }
       };
-      
+
       proceedAfterNewAddress();
     }
   }, [route.params]);
@@ -525,12 +525,12 @@ export default function ChatScreen({ navigation, route }) {
   const parseExactTime = (text) => {
     if (!text) return null;
     const t = text.toLowerCase();
-    
+
     // Regex to match:
     // - Hour and optional minutes, followed by baje, bjy, bja, bje, am, pm, o'clock, etc. (e.g. "7 bjy", "11:30", "2 pm")
     // - Matches stand-alone hour like "11" or "7" when explicitly accompanied by unit indicators or time suffixes
     const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm|baje|bjy|bja|bje|o'clock|hr|hours)?/gi;
-    
+
     let match;
     let foundHour = null;
     let foundMin = 0;
@@ -540,7 +540,7 @@ export default function ChatScreen({ navigation, route }) {
     while ((match = timeRegex.exec(t)) !== null) {
       const val = parseInt(match[1]);
       const suffix = match[3] ? match[3].toLowerCase() : '';
-      
+
       // We match if we have a direct suffix (like bjy, am, pm, etc.) or if there are minutes specified (like 11:30)
       if (suffix || match[2]) {
         foundHour = val;
@@ -565,8 +565,8 @@ export default function ChatScreen({ navigation, route }) {
     // Heuristics for resolving PM or AM based on context
     if (!hasExplicitAmPm) {
       if (t.includes('sham') || t.includes('shaam') || t.includes('shm') || t.includes('evening') ||
-          t.includes('raat') || t.includes('rat') || t.includes('night') || t.includes('rt') ||
-          t.includes('dopahar') || t.includes('dophar') || t.includes('dphr') || t.includes('afternoon') || t.includes('noon')) {
+        t.includes('raat') || t.includes('rat') || t.includes('night') || t.includes('rt') ||
+        t.includes('dopahar') || t.includes('dophar') || t.includes('dphr') || t.includes('afternoon') || t.includes('noon')) {
         if (foundHour < 12) {
           isPm = true;
         }
@@ -615,7 +615,7 @@ export default function ChatScreen({ navigation, route }) {
 
     const t = pref.toLowerCase();
     const today = new Date();
-    
+
     let dateObj = today;
     if (t.includes('tomorrow') || t.includes('kal')) {
       dateObj = new Date();
@@ -656,11 +656,11 @@ export default function ChatScreen({ navigation, route }) {
   const hasTimeInMessage = (text) => {
     if (!text) return false;
     const t = text.toLowerCase();
-    
+
     // We check if the user specified an exact time (e.g. "7 bjy", "11:30", "2 pm", "10 baje")
     const exactTimeRegex = /\b\d{1,2}\s*(am|pm|baje|bjy|bja|bje|o'clock)/i;
     const hasColonTime = /\b\d{1,2}:\d{2}\b/.test(t);
-    
+
     return exactTimeRegex.test(t) || hasColonTime;
   };
 
@@ -682,9 +682,9 @@ export default function ChatScreen({ navigation, route }) {
       if (stage === 'awaiting_problem_description') {
         const problemText = text.trim();
         const provider = pendingData?.selectedProvider;
-        
+
         drop(thinkId);
-        
+
         // Ask Groq to suggest service based on problem
         try {
           const response = await fetch(`${BASE_URL}/api/suggest-service`, {
@@ -697,7 +697,7 @@ export default function ChatScreen({ navigation, route }) {
             })
           });
           const data = await response.json();
-          
+
           add({
             id: uid(), type: 'bot', timestamp: ts(),
             text: `Aapke masle ke mutabiq main suggest karta hoon:\n\n` +
@@ -705,13 +705,13 @@ export default function ChatScreen({ navigation, route }) {
               `${data.reasoning}\n\n` +
               `Kya aap yeh service book karna chahte hain?`
           });
-          
+
           // Show the specific service as a bookable option
           add({
             id: uid(), type: 'service_suggestion', timestamp: ts(),
             data: { service: data.service_object, provider }
           });
-          
+
           setStage('providers_shown');
         } catch (error) {
           add({
@@ -737,7 +737,7 @@ export default function ChatScreen({ navigation, route }) {
         } else {
           add({
             id: uid(), type: 'bot', timestamp: ts(),
-            text: `Kripya batayein ke kya aap isi address par service chahte hain? Niche diye gaye options select karein ya "Yes" / "No" likhein. 😊`
+            text: `Baraye meherbani batayein ke kya aap isi address par service chahte hain? Niche diye gaye options select karein ya "Yes" / "No" likhein. 😊`
           });
         }
         setLoading(false);
@@ -779,7 +779,7 @@ export default function ChatScreen({ navigation, route }) {
           } else {
             add({
               id: uid(), type: 'bot', timestamp: ts(),
-              text: 'Number batain (1, 2, ya 3) ya provider ka naam likhein 😊',
+              text: 'Number batain (1, 2, ya 3 ....) ya provider ka naam likhein 😊',
             });
           }
           setLoading(false);
@@ -807,7 +807,7 @@ export default function ChatScreen({ navigation, route }) {
         try {
           const parsed = JSON.parse(savedAddrStr);
           if (parsed.address || parsed.area || parsed.name) hasSavedLoc = true;
-        } catch (e) {}
+        } catch (e) { }
       }
       if (storedArea) hasSavedLoc = true;
 
@@ -816,7 +816,7 @@ export default function ChatScreen({ navigation, route }) {
         drop(thinkId);
         add({
           id: uid(), type: 'bot', timestamp: ts(),
-          text: 'Apka location set nahi hai. Kripya apna area batain (e.g. Clifton ya DHA Karachi) taake hum aapko qareeb ke providers dikha sakein. 📍',
+          text: 'Apka location set nahi hai. Baraye mehrbani apna area batain (e.g. Clifton ya DHA Karachi) taake hum aapko qareeb ke providers dikha sakein. 📍',
         });
         setStage('awaiting_location');
         setPendingData({ originalPrompt: text });
@@ -840,18 +840,18 @@ export default function ChatScreen({ navigation, route }) {
   const handleAddressConfirmed = async (savedAddress, originalRequest) => {
     setStage('idle');
     setPendingData({ addressConfirmed: true });
-    
+
     add({
       id: uid(), type: 'bot', timestamp: ts(),
       text: `✅ Perfect! Searching near ${savedAddress.address}...`
     });
-    
+
     const thinkId = uid();
     add({ id: thinkId, type: 'thinking', timestamp: ts(), text: '' });
     setLoading(true);
     const cleanup = showStepByStep();
     cleanupRef.current = cleanup;
-    
+
     await handleNewServiceRequest(originalRequest, thinkId, true);
     setLoading(false);
     cleanup();
@@ -859,14 +859,14 @@ export default function ChatScreen({ navigation, route }) {
 
   const handleAddressChange = (originalRequest) => {
     setStage('idle');
-    
+
     add({
       id: uid(), type: 'bot', timestamp: ts(),
       text: `📍 Apna naya address set karein — phir wapas aayein ` +
         `aur apni request dobara bhejein.\n\n` +
         `Main aapko wahan ke providers dikhaunga! 😊`
     });
-    
+
     add({
       id: uid(), type: 'address_change_prompt', timestamp: ts(),
       data: { originalRequest }
@@ -878,46 +878,46 @@ export default function ChatScreen({ navigation, route }) {
     setStartPrompt(text);
     let enrichedText = text;
     addLog('IntentAgent', `Parsing user request intent: "${text}"`, 'NLP-Parser', 'In Progress');
-    
+
     let savedAddress = null;
     try {
       const savedAddrStr = await AsyncStorage.getItem('selected_address');
       savedAddress = savedAddrStr ? JSON.parse(savedAddrStr) : null;
-      
+
       if (!addressAlreadyConfirmed && savedAddress && !pendingData?.addressConfirmed) {
         drop(thinkId);
         setLoading(false);
         cleanupRef.current?.();
-        
+
         add({
           id: uid(), type: 'bot', timestamp: ts(),
           text: `📍 Kya aap yeh service apne saved address par chahte hain?\n\n` +
             `🏠 ${savedAddress.label}: ${savedAddress.address}, ${savedAddress.city}`
         });
-        
+
         add({
           id: uid(), type: 'address_confirm', timestamp: ts(),
-          data: { 
-            savedAddress, 
-            originalRequest: text 
+          data: {
+            savedAddress,
+            originalRequest: text
           }
         });
-        
+
         setStage('awaiting_address_confirm');
-        setPendingData({ 
-          originalRequest: text, 
+        setPendingData({
+          originalRequest: text,
           savedAddress,
-          addressConfirmed: false 
+          addressConfirmed: false
         });
         return;
       }
-      
+
       const userArea = await AsyncStorage.getItem('userArea');
       let currentArea = userArea;
       if (savedAddress) {
         currentArea = savedAddress.address || savedAddress.area || savedAddress.name || userArea;
       }
-      
+
       const locationMentioned = /karachi|clifton|gulshan|defence|dha|nazimabad|korangi|malir|saddar|pechs|bahadurabad|islamabad|g-13|f-7|f-6|g-11|i-8/i.test(text);
       if (!locationMentioned && currentArea) {
         enrichedText = `${text} (User is located in: ${currentArea})`;
@@ -935,7 +935,7 @@ export default function ChatScreen({ navigation, route }) {
       lat: savedAddress.latitude,
       lng: savedAddress.longitude
     } : userLocation;
-    
+
     const result = await discoverProviders(enrichedText, locationToUse);
     drop(thinkId);
 
@@ -955,7 +955,7 @@ export default function ChatScreen({ navigation, route }) {
     } else if (result.status === 'providers_found') {
       const svcType = result.intent?.service_type || '';
       setCurrentServiceType(svcType);
-      
+
       addLog('DiscoveryAgent', `Queried and retrieved available ${svcType} technicians`, 'FirestoreQuery', 'Success');
       addLog('MatchingAgent', `Ranking providers in Clifton/DHA based on distance and rating`, 'DecisionMatrix', 'Completed');
 
@@ -983,17 +983,17 @@ export default function ChatScreen({ navigation, route }) {
     if (loading) return;
     setLoading(true);
     addLog('DiscoveryAgent', `Provider chosen: ${provider.name}`, 'UserSelection', 'Provider Selected');
-    
+
     // Add user response bubble
     add({ id: uid(), type: 'user', text: `${provider.name} ko select kiya`, timestamp: ts() });
-    
+
     const thinkId = uid();
     add({ id: thinkId, type: 'thinking', text: '', timestamp: ts() });
 
     try {
       let providerDetails = null;
       let isGoogleMaps = provider.source === 'google_maps' || String(provider.provider_id || provider.id).startsWith('ChI');
-      
+
       if (!isGoogleMaps) {
         try {
           const res = await getProviderDetails(provider.provider_id || provider.id);
@@ -1010,7 +1010,7 @@ export default function ChatScreen({ navigation, route }) {
       if (providerDetails && providerDetails.services && providerDetails.services.length > 0) {
         setSelectedProvider(providerDetails);
         addLog('MatchingAgent', `Fetched ${providerDetails.services.length} services for ${providerDetails.name}`, 'getProviderDetails', 'Success');
-        
+
         // Add services menu bubble inline!
         add({
           id: uid(),
@@ -1060,7 +1060,7 @@ export default function ChatScreen({ navigation, route }) {
     setSelectedService(inspectionService);
     addLog('MatchingAgent', `User is unsure, automatically selected fallback: Inspection & Diagnosis (PKR 1000)`, 'UserSelection', 'FallbackServiceSelected');
     add({ id: uid(), type: 'user', text: `Nahi pata kia chahye (Inspection & Diagnosis) PKR 1000 choose kiya`, timestamp: ts() });
-    
+
     // Process service selection directly to continue booking
     const originalText = startPrompt || pendingData?.originalPrompt || '';
     if (hasTimeInMessage(originalText)) {
@@ -1083,7 +1083,7 @@ export default function ChatScreen({ navigation, route }) {
     setSelectedService(service);
     addLog('MatchingAgent', `Service chosen: ${service.name} (PKR ${service.price})`, 'UserSelection', 'Service Selected');
     add({ id: uid(), type: 'user', text: `${service.name} (PKR ${service.price}) choose kiya`, timestamp: ts() });
-    
+
     // Check if time slot was already mentioned in original user prompt
     const originalText = startPrompt || pendingData?.originalPrompt || '';
     if (hasTimeInMessage(originalText)) {
@@ -1171,7 +1171,7 @@ export default function ChatScreen({ navigation, route }) {
   const executeAutoBooking = async (service, timePref) => {
     setLoading(true);
     addLog('BookingAgent', 'Executing secure booking transaction...', 'bookProvider API', 'Initiated');
-    
+
     const thinkId = uid();
     add({ id: thinkId, type: 'thinking', text: '', timestamp: ts() });
 
@@ -1203,7 +1203,7 @@ export default function ChatScreen({ navigation, route }) {
           if (pm && hrs < 12) hrs += 12;
           if (!pm && hrs === 12) hrs = 0;
         }
-        
+
         try {
           // Construct using Karachi (Pakistan Standard Time) offset
           const slotTimeObj = new Date(`${timeParsed.isoDate}T00:00:00+05:00`);
@@ -1226,9 +1226,9 @@ export default function ChatScreen({ navigation, route }) {
 
       // Call real backend booking
       const result = await bookProvider(
-        selectedProvider, 
-        updatedIntent, 
-        pendingData?.trace_id || `TR-${Date.now().toString(36)}`, 
+        selectedProvider,
+        updatedIntent,
+        pendingData?.trace_id || `TR-${Date.now().toString(36)}`,
         user?.uid || 'mobile-user'
       );
 
@@ -1238,7 +1238,7 @@ export default function ChatScreen({ navigation, route }) {
         incrementBookingCount().catch(console.error);
         const bk = result.booking;
         setCurrentBookingId(bk?.booking_id || bk?.bookingId);
-        
+
         // Render booking card
         add({
           id: uid(),
@@ -1286,37 +1286,37 @@ export default function ChatScreen({ navigation, route }) {
 
   const simulateFollowUps = (booking) => {
     addLog('AutomationAgent', 'Scheduled pre-appointment automated reminders & completions', 'Scheduler', 'Active');
-    
-    const _providerName = booking?.provider_name 
-      || selectedProvider?.name 
+
+    const _providerName = booking?.provider_name
+      || selectedProvider?.name
       || 'Your provider';
-    
-    const _serviceType = booking?.service_type 
-      || currentServiceType 
+
+    const _serviceType = booking?.service_type
+      || currentServiceType
       || '';
-    
-    const _serviceLabel = SERVICE_LABELS[_serviceType] 
-      || _serviceType?.replace(/_/g,' ') 
+
+    const _serviceLabel = SERVICE_LABELS[_serviceType]
+      || _serviceType?.replace(/_/g, ' ')
       || 'service';
-    
-    const _phone = selectedProvider?.phone 
-      || selectedProvider?.simulated_state?.phone 
+
+    const _phone = selectedProvider?.phone
+      || selectedProvider?.simulated_state?.phone
       || 'Contact via app';
-    
+
     const _address = booking?.user_details?.address
       || booking?.location
       || 'your address';
-    
-    const _slotDate = booking?.slot 
+
+    const _slotDate = booking?.slot
       ? new Date(booking.slot).toLocaleString('en-US', {
-          timeZone: 'Asia/Karachi',
-          weekday: 'long',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        })
+        timeZone: 'Asia/Karachi',
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
       : 'scheduled time';
 
     // 1. Reminder simulation (after 4 seconds)
@@ -1331,7 +1331,7 @@ export default function ChatScreen({ navigation, route }) {
           `📅 Time: ${_slotDate}\n` +
           `📍 Address: ${_address}\n\n` +
           `Provider waqt par aapke paas pohonch jayega. ✅\n\n` +
-          `_(This is a demo simulation. In production, reminders would fire at actual scheduled times.)_`
+          `(This is a demo simulation. In production, reminders would fire at actual scheduled times.)`
       });
     }, 4000);
 
@@ -1515,14 +1515,14 @@ export default function ChatScreen({ navigation, route }) {
       <Text style={s.summaryLine}>📍 Location: {String(data.booking?.location || '—')}</Text>
       <Text style={s.summaryLine}>🕐 Time: {data.booking?.slot
         ? new Date(data.booking.slot).toLocaleString('en-US', {
-            timeZone: 'Asia/Karachi',
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-          })
+          timeZone: 'Asia/Karachi',
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })
         : 'TBD'}</Text>
       <Text style={s.summaryDivider}>━━━━━━━━━━━━━━━━━━━━</Text>
       <Text style={s.summaryHighlight}>💰 ESTIMATED TOTAL: PKR {String(data.booking?.price_estimate?.min || '?')}–{String(data.booking?.price_estimate?.max || '?')}</Text>
@@ -1623,7 +1623,7 @@ export default function ChatScreen({ navigation, route }) {
                 onPress={() => {
                   if (isDisabled) return;
                   setClickedMessageIds(prev => [...prev, msg.id]);
-                  
+
                   // Combine selected services into a single unified service item
                   const combinedName = currentSelection.map(s => s.name).join(' + ');
                   const combinedPrice = currentSelection.reduce((sum, s) => sum + s.price, 0);
@@ -1634,7 +1634,7 @@ export default function ChatScreen({ navigation, route }) {
                     isCombined: true,
                     servicesList: currentSelection
                   };
-                  
+
                   selectService(combinedService);
                 }}
               >
@@ -1643,7 +1643,7 @@ export default function ChatScreen({ navigation, route }) {
                 </Text>
               </TouchableOpacity>
             ) : null}
-            
+
             {/* Fallback Option */}
             <TouchableOpacity
               style={[s.notSureCard, isDisabled ? { opacity: 0.6 } : null]}
@@ -1733,7 +1733,7 @@ export default function ChatScreen({ navigation, route }) {
                 <Text style={s.receiptTitle}>🎉 BOOKING CONFIRMED</Text>
                 <Text style={s.receiptId}>ID: {booking.booking_id}</Text>
               </View>
-              
+
               <View style={s.receiptRow}>
                 <Text style={s.receiptLabel}>Service:</Text>
                 <Text style={s.receiptVal}>🛠️ {serviceName}</Text>
@@ -1754,7 +1754,7 @@ export default function ChatScreen({ navigation, route }) {
                 <Text style={s.receiptLabel}>Cost Est:</Text>
                 <Text style={s.receiptValHighlight}>{booking.estimatedCost}</Text>
               </View>
- 
+
               <TouchableOpacity
                 style={s.pdfButton}
                 activeOpacity={0.8}
@@ -1808,7 +1808,7 @@ export default function ChatScreen({ navigation, route }) {
       const { bookingId, providerName } = msg.data;
       const selectedStars = ratingsMap[msg.id] || 0;
       const isRated = selectedStars > 0;
-      
+
       return (
         <View key={msg.id} style={s.rowBot}>
           <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
@@ -1966,7 +1966,7 @@ export default function ChatScreen({ navigation, route }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F6FA' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* History Sidebar Panel Overlay */}
       {historyVisible && (
         <View style={s.historySidebarOverlay}>
@@ -2034,7 +2034,7 @@ export default function ChatScreen({ navigation, route }) {
               <Text style={s.locTextDenied}> Enable GPS</Text>
             </TouchableOpacity>
           ) : null}
-          
+
           <TouchableOpacity style={s.newChatBtn} onPress={startNewChat}>
             <Ionicons name="add" size={16} color={C.primary} />
             <Text style={s.traceBtnText}> New Chat</Text>
@@ -2149,10 +2149,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12,
   },
   devBtnText: { color: '#2196F3', fontSize: 11, fontWeight: '700' },
-  
+
   mainBodyRow: { flex: 1, flexDirection: 'row' },
   chatContainer: { flex: 2, height: '100%' },
-  
+
   // LOGS DRAWER STYLING
   logsDrawer: {
     flex: 1,
