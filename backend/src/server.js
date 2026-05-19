@@ -135,15 +135,20 @@ app.post('/api/bookings/:bookingId/cancel', async (req, res) => {
 app.post('/api/bookings/:bookingId/complete', async (req, res) => {
   try {
     const { bookingId } = req.params;
+    const { rating } = req.body || {};
     const docRef = db.collection('bookings').doc(bookingId);
     const doc = await docRef.get();
     if (!doc.exists) {
       return res.status(404).json({ success: false, error: 'Booking not found' });
     }
-    await docRef.update({
+    const updateData = {
       status: 'completed',
       completed_at: new Date().toISOString()
-    });
+    };
+    if (rating !== undefined) {
+      updateData.rating = Number(rating);
+    }
+    await docRef.update(updateData);
     res.json({ success: true, message: 'Booking marked as completed' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

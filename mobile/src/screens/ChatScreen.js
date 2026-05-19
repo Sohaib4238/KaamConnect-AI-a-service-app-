@@ -111,12 +111,226 @@ export default function ChatScreen({ navigation, route }) {
     { time: new Date().toLocaleTimeString('en-US', { hour12: false }), agent: 'System', action: 'KaamConnect AI Agentic Session Initialized', tool: 'LocalInit', result: 'Ready' }
   ]);
 
+  // Premium Chat Upgrades State
+  const [clickedMessageIds, setClickedMessageIds] = useState([]);
+  const [selectedServicesMap, setSelectedServicesMap] = useState({});
+  const [ratingsMap, setRatingsMap] = useState({});
+  const [sessions, setSessions] = useState([]);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [historyVisible, setHistoryVisible] = useState(false);
+
+  // Load and save chat sessions for Gemini/ChatGPT style history
+  useEffect(() => {
+    const loadSessions = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('kaamconnect_chat_sessions');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.length > 0) {
+            setSessions(parsed);
+            const lastSession = parsed[parsed.length - 1];
+            setCurrentSessionId(lastSession.id);
+            const loadedMsgs = lastSession.messages.map(m => ({
+              ...m,
+              timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+            }));
+            setMessages(loadedMsgs);
+            setStage(lastSession.stage || 'idle');
+            setPendingData(lastSession.pendingData || null);
+            setSelectedProvider(lastSession.selectedProvider || null);
+            setSelectedService(lastSession.selectedService || null);
+            if (lastSession.clickedMessageIds) {
+              setClickedMessageIds(lastSession.clickedMessageIds);
+            }
+            if (lastSession.selectedServicesMap) {
+              setSelectedServicesMap(lastSession.selectedServicesMap);
+            }
+            if (lastSession.ratingsMap) {
+              setRatingsMap(lastSession.ratingsMap);
+            }
+            return;
+          }
+        }
+        
+        // Initial setup
+        const initialId = uid();
+        const initialSession = {
+          id: initialId,
+          title: 'Naya Chat',
+          messages: [GREETING],
+          stage: 'idle',
+          pendingData: null,
+          selectedProvider: null,
+          selectedService: null,
+          clickedMessageIds: [],
+          selectedServicesMap: {},
+          ratingsMap: {},
+          timestamp: Date.now()
+        };
+        setSessions([initialSession]);
+        setCurrentSessionId(initialId);
+        await AsyncStorage.setItem('kaamconnect_chat_sessions', JSON.stringify([initialSession]));
+      } catch (err) {
+        console.error('Failed to load chat sessions:', err);
+      }
+    };
+    loadSessions();
+  }, []);
+
+  // Auto-sync active session state to AsyncStorage when it changes
+  useEffect(() => {
+    if (!currentSessionId || sessions.length === 0) return;
+
+    const activeSession = sessions.find(s => s.id === currentSessionId);
+    if (!activeSession) return;
+
+    let title = activeSession.title || 'Naya Chat';
+    if (title === 'Naya Chat') {
+      const firstUserMsg = messages.find(m => m.type === 'user');
+      if (firstUserMsg) {
+        title = firstUserMsg.text.substring(0, 24) + (firstUserMsg.text.length > 24 ? '...' : '');
+      }
+    }
+
+    const updatedSessions = sessions.map(s => {
+      if (s.id === currentSessionId) {
+        return {
+          ...s,
+          title,
+          messages,
+          stage,
+          pendingData,
+          selectedProvider,
+          selectedService,
+          clickedMessageIds,
+          selectedServicesMap,
+          ratingsMap,
+          timestamp: Date.now()
+        };
+      }
+      return s;
+    });
+
+    const hasChanged = JSON.stringify(sessions) !== JSON.stringify(updatedSessions);
+    if (hasChanged) {
+      setSessions(updatedSessions);
+      AsyncStorage.setItem('kaamconnect_chat_sessions', JSON.stringify(updatedSessions));
+    }
+  }, [messages, stage, pendingData, selectedProvider, selectedService, clickedMessageIds, selectedServicesMap, ratingsMap]);
+
+  const startNewChat = async () => {
+    const newId = uid();
+    const newSession = {
+      id: newId,
+      title: 'Naya Chat',
+      messages: [GREETING],
+      stage: 'idle',
+      pendingData: null,
+      selectedProvider: null,
+      selectedService: null,
+      clickedMessageIds: [],
+      selectedServicesMap: {},
+      ratingsMap: {},
+      timestamp: Date.now()
+    };
+    const updatedSessions = [...sessions, newSession];
+    setSessions(updatedSessions);
+    setCurrentSessionId(newId);
+    setMessages([GREETING]);
+    setStage('idle');
+    setPendingData(null);
+    setSelectedProvider(null);
+    setSelectedService(null);
+    setClickedMessageIds([]);
+    setSelectedServicesMap({});
+    setRatingsMap({});
+    await AsyncStorage.setItem('kaamconnect_chat_sessions', JSON.stringify(updatedSessions));
+  };
+
+  const selectSession = (session) => {
+    setCurrentSessionId(session.id);
+    const loadedMsgs = session.messages.map(m => ({
+      ...m,
+      timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+    }));
+    setMessages(loadedMsgs);
+    setStage(session.stage || 'idle');
+    setPendingData(session.pendingData || null);
+    setSelectedProvider(session.selectedProvider || null);
+    setSelectedService(session.selectedService || null);
+    setClickedMessageIds(session.clickedMessageIds || []);
+    setSelectedServicesMap(session.selectedServicesMap || {});
+    setRatingsMap(session.ratingsMap || {});
+    setHistoryVisible(false);
+  };
+
+  const deleteSession = async (sessionId) => {
+    const remaining = sessions.filter(s => s.id !== sessionId);
+    if (remaining.length === 0) {
+      const newId = uid();
+      const newSession = {
+        id: newId,
+        title: 'Naya Chat',
+        messages: [GREETING],
+        stage: 'idle',
+        pendingData: null,
+        selectedProvider: null,
+        selectedService: null,
+        clickedMessageIds: [],
+        selectedServicesMap: {},
+        ratingsMap: {},
+        timestamp: Date.now()
+      };
+      setSessions([newSession]);
+      setCurrentSessionId(newId);
+      setMessages([GREETING]);
+      setStage('idle');
+      setPendingData(null);
+      setSelectedProvider(null);
+      setSelectedService(null);
+      setClickedMessageIds([]);
+      setSelectedServicesMap({});
+      setRatingsMap({});
+      await AsyncStorage.setItem('kaamconnect_chat_sessions', JSON.stringify([newSession]));
+    } else {
+      setSessions(remaining);
+      if (currentSessionId === sessionId) {
+        const first = remaining[0];
+        setCurrentSessionId(first.id);
+        const loadedMsgs = first.messages.map(m => ({
+          ...m,
+          timestamp: m.timestamp ? new Date(m.timestamp) : new Date()
+        }));
+        setMessages(loadedMsgs);
+        setStage(first.stage || 'idle');
+        setPendingData(first.pendingData || null);
+        setSelectedProvider(first.selectedProvider || null);
+        setSelectedService(first.selectedService || null);
+        setClickedMessageIds(first.clickedMessageIds || []);
+        setSelectedServicesMap(first.selectedServicesMap || {});
+        setRatingsMap(first.ratingsMap || {});
+      }
+      await AsyncStorage.setItem('kaamconnect_chat_sessions', JSON.stringify(remaining));
+    }
+  };
+
+  const toggleServiceInMessage = (msgId, service) => {
+    setSelectedServicesMap(prev => {
+      const current = prev[msgId] || [];
+      const exists = current.some(s => s.id === service.id);
+      const updated = exists
+        ? current.filter(s => s.id !== service.id)
+        : [...current, service];
+      return { ...prev, [msgId]: updated };
+    });
+  };
+
   const addLog = (agent, action, tool = '—', result = 'Success') => {
     const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
     setAgentLogs(p => [...p, { time: timeStr, agent, action, tool, result }]);
   };
 
-  const handleJobDone = async (bookingId) => {
+  const handleJobDone = async (bookingId, msgId) => {
     if (!bookingId) return;
     try {
       addLog('AutomationAgent', `Completing booking: ${bookingId}`, 'API_Call', 'In-Progress');
@@ -133,6 +347,19 @@ export default function ChatScreen({ navigation, route }) {
           timestamp: ts(),
           text: '💖 Bohat shukriya confirm karne ka! Booking status database mein COMPLETE mark ho chuki hai. Stay blessed! ✨'
         });
+        
+        // Append rating prompt
+        setTimeout(() => {
+          add({
+            id: uid(),
+            type: 'rating_prompt',
+            timestamp: ts(),
+            data: {
+              bookingId: bookingId,
+              providerName: selectedProvider?.name || 'Provider'
+            }
+          });
+        }, 1000);
       } else {
         throw new Error(data.error || 'Server error');
       }
@@ -144,10 +371,23 @@ export default function ChatScreen({ navigation, route }) {
         timestamp: ts(),
         text: '💖 Bohat shukriya confirm karne ka! Agar aapko koi aur madad chahiye ho toh humein chat mein likhein. Stay blessed! ✨'
       });
+      
+      // Append rating prompt as fallback
+      setTimeout(() => {
+        add({
+          id: uid(),
+          type: 'rating_prompt',
+          timestamp: ts(),
+          data: {
+            bookingId: bookingId,
+            providerName: selectedProvider?.name || 'Provider'
+          }
+        });
+      }, 1000);
     }
   };
 
-  const handleIssueRaised = async (bookingId) => {
+  const handleIssueRaised = async (bookingId, msgId) => {
     if (!bookingId) return;
     try {
       addLog('AutomationAgent', `Raising issue for booking: ${bookingId}`, 'API_Call', 'In-Progress');
@@ -725,16 +965,31 @@ export default function ChatScreen({ navigation, route }) {
   };
 
   const handleNotSure = (provider, intent) => {
-    add({
-      id: uid(), type: 'bot', timestamp: ts(),
-      text: `Koi baat nahi! 😊 Apna masla describe karein ` +
-        `aur main suggest karunga ke ${provider.name} ` +
-        `se kaunsi service leni chahiye.\n\n` +
-        `Maslan: "Ghar mein light nahi aa rahi" ya ` +
-        `"AC thanda nahi kar raha"`
-    });
-    setStage('awaiting_problem_description');
-    setPendingData(prev => ({ ...prev, selectedProvider: provider }));
+    const inspectionService = {
+      id: 'inspection_diagnosis',
+      name: 'Inspection & Diagnosis (Ghar par check-up)',
+      price: 1000
+    };
+    setSelectedService(inspectionService);
+    addLog('MatchingAgent', `User is unsure, automatically selected fallback: Inspection & Diagnosis (PKR 1000)`, 'UserSelection', 'FallbackServiceSelected');
+    add({ id: uid(), type: 'user', text: `Nahi pata kia chahye (Inspection & Diagnosis) PKR 1000 choose kiya`, timestamp: ts() });
+    
+    // Process service selection directly to continue booking
+    const originalText = pendingData?.originalPrompt || '';
+    if (hasTimeInMessage(originalText)) {
+      addLog('BookingAgent', 'Date/Time parsed from prompt. Auto-booking initiated...', 'parseTimeSlot', 'Found');
+      executeAutoBooking(inspectionService, originalText);
+    } else {
+      addLog('BookingAgent', 'No Date/Time in prompt. Prompting user with slot options.', 'PromptSlots', 'Waiting');
+      const slots = generateTimeSlots();
+      add({
+        id: uid(),
+        type: 'time_slots',
+        timestamp: ts(),
+        data: slots
+      });
+      setStage('awaiting_time');
+    }
   };
 
   const selectService = (service) => {
@@ -772,13 +1027,17 @@ export default function ChatScreen({ navigation, route }) {
       { label: 'Evening', hour: 17, display: '05:00 PM' }
     ];
 
+    const currentHour = today.getHours();
     times.forEach(t => {
-      slots.push({
-        label: `Today ${t.label} (${t.display})`,
-        value: `Today at ${t.display}`,
-        hour: t.hour,
-        date: today
-      });
+      // Only show today's slot if the hour has not passed yet
+      if (currentHour < t.hour) {
+        slots.push({
+          label: `Today ${t.label} (${t.display})`,
+          value: `Today at ${t.display}`,
+          hour: t.hour,
+          date: today
+        });
+      }
     });
 
     times.forEach(t => {
@@ -1071,37 +1330,46 @@ export default function ChatScreen({ navigation, route }) {
   };
 
   // ── RENDER FUNCTIONS ──────────────────────────
-  const renderProviderCard = (provider, idx, isTop) => (
-    <TouchableOpacity
-      key={idx}
-      style={[s.providerCard, isTop ? s.providerCardTop : null]}
-      activeOpacity={0.7}
-      onPress={() => selectProvider(provider)}
-    >
-      {isTop ? (
-        <View style={s.topBadge}><Text style={s.topBadgeText}>🏆 BEST MATCH</Text></View>
-      ) : null}
-      <View style={s.provHeaderRow}>
-        <Text style={s.provIdx}>{String(idx + 1)}</Text>
-        <Text style={s.provName}>{getServiceEmoji(provider.service_type || currentServiceType)} {String(provider.name || 'Provider')}</Text>
-      </View>
-      <View style={s.provRow}>
-        <Text style={s.provStat}>⭐ {String(provider.rating || provider.simulated_state?.rating || '4.5')}/5</Text>
-        <Text style={s.provStat}>✅ On-Time: {String(Math.round((provider.simulated_state?.on_time_score || provider.on_time_score || 0.9) * 100))}%</Text>
-      </View>
-      <View style={s.provRow}>
-        <Text style={s.provStat}>📍 {String(Number(provider.distance_km || 0).toFixed(1))} km away</Text>
-        <Text style={s.provStat}>💰 PKR {String(provider.simulated_state?.price_range_pkr?.min || provider.price_range?.min || '1500')}–{String(provider.simulated_state?.price_range_pkr?.max || provider.price_range?.max || '3000')}</Text>
-      </View>
-      {(provider.extended_area || provider.surcharge_pkr) ? (
-        <View style={s.surchargeBadge}>
-          <Text style={s.surchargeText}>🚗 Long Distance Surcharge: +PKR {provider.surcharge_pkr || 150}</Text>
+  const renderProviderCard = (provider, idx, isTop, msgId) => {
+    const isClicked = clickedMessageIds.includes(msgId);
+    const isDisabled = isClicked || stage !== 'providers_shown';
+    return (
+      <TouchableOpacity
+        key={idx}
+        style={[s.providerCard, isTop ? s.providerCardTop : null, isDisabled ? { opacity: 0.65 } : null]}
+        activeOpacity={isDisabled ? 1 : 0.7}
+        onPress={() => {
+          if (isDisabled) return;
+          setClickedMessageIds(prev => [...prev, msgId]);
+          selectProvider(provider);
+        }}
+        disabled={isDisabled}
+      >
+        {isTop ? (
+          <View style={s.topBadge}><Text style={s.topBadgeText}>🏆 BEST MATCH</Text></View>
+        ) : null}
+        <View style={s.provHeaderRow}>
+          <Text style={s.provIdx}>{String(idx + 1)}</Text>
+          <Text style={s.provName}>{getServiceEmoji(provider.service_type || currentServiceType)} {String(provider.name || 'Provider')}</Text>
         </View>
-      ) : null}
-      {isTop ? <Text style={s.provNote}>📝 AI-ranked best option — Score: {String(Number(provider.score || 0).toFixed(2))}</Text> : null}
-      <Text style={s.tapHint}>Tap to select →</Text>
-    </TouchableOpacity>
-  );
+        <View style={s.provRow}>
+          <Text style={s.provStat}>⭐ {String(provider.rating || provider.simulated_state?.rating || '4.5')}/5</Text>
+          <Text style={s.provStat}>✅ On-Time: {String(Math.round((provider.simulated_state?.on_time_score || provider.on_time_score || 0.9) * 100))}%</Text>
+        </View>
+        <View style={s.provRow}>
+          <Text style={s.provStat}>📍 {String(Number(provider.distance_km || 0).toFixed(1))} km away</Text>
+          <Text style={s.provStat}>💰 PKR {String(provider.simulated_state?.price_range_pkr?.min || provider.price_range?.min || '1500')}–{String(provider.simulated_state?.price_range_pkr?.max || provider.price_range?.max || '3000')}</Text>
+        </View>
+        {(provider.extended_area || provider.surcharge_pkr) ? (
+          <View style={s.surchargeBadge}>
+            <Text style={s.surchargeText}>🚗 Long Distance Surcharge: +PKR {provider.surcharge_pkr || 150}</Text>
+          </View>
+        ) : null}
+        {isTop ? <Text style={s.provNote}>📝 AI-ranked best option — Score: {String(Number(provider.score || 0).toFixed(2))}</Text> : null}
+        <Text style={s.tapHint}>{isDisabled ? 'Selected ✓' : 'Tap to select →'}</Text>
+      </TouchableOpacity>
+    );
+  };
 
   const renderBookingSummary = (data) => (
     <View style={s.summaryCard}>
@@ -1167,43 +1435,95 @@ export default function ChatScreen({ navigation, route }) {
               </View>
             ) : null}
             <Text style={s.provHeader}>Aapke area mein yeh {getServiceLabel(currentServiceType)}s available hain:</Text>
-            {r?.top_pick ? renderProviderCard(r.top_pick, 0, true) : null}
-            {r?.alternatives?.map((alt, i) => renderProviderCard(alt, i + 1, false))}
+            {r?.top_pick ? renderProviderCard(r.top_pick, 0, true, msg.id) : null}
+            {r?.alternatives?.map((alt, i) => renderProviderCard(alt, i + 1, false, msg.id))}
           </View>
         </View>
       );
     }
     if (msg.type === 'services_menu') {
       const { provider, services } = msg.data;
+      const isClicked = clickedMessageIds.includes(msg.id);
+      const isDisabled = isClicked || stage !== 'services_shown';
+      const currentSelection = selectedServicesMap[msg.id] || [];
+
       return (
         <View key={msg.id} style={s.rowBot}>
           <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
           <View style={s.bubbleBotWide}>
             <Text style={s.inlineMenuTitle}>📋 {provider.name} Service Catalog</Text>
-            <Text style={s.inlineMenuSub}>Apna targeted service choose karein:</Text>
-            {services.map((svc, idx) => (
+            <Text style={s.inlineMenuSub}>Ek ya ek se zyada services select karein:</Text>
+            {services.map((svc, idx) => {
+              const isSelected = currentSelection.some(s => s.id === svc.id);
+              return (
+                <TouchableOpacity
+                  key={svc.id || idx}
+                  style={[
+                    s.inlineSvcCard,
+                    isSelected ? s.inlineSvcCardSelected : null,
+                    isDisabled ? { opacity: 0.7 } : null
+                  ]}
+                  onPress={() => {
+                    if (isDisabled) return;
+                    toggleServiceInMessage(msg.id, svc);
+                  }}
+                  disabled={isDisabled}
+                >
+                  <View style={s.inlineSvcInfo}>
+                    <Text style={s.inlineSvcName}>
+                      {isSelected ? '✅ ' : '⚡ '} {svc.name}
+                    </Text>
+                    <Text style={s.inlineSvcPrice}>PKR {svc.price.toLocaleString()}</Text>
+                  </View>
+                  <Text style={[s.inlineSelectBtnText, isSelected ? { color: '#00C853', fontWeight: '800' } : null]}>
+                    {isSelected ? 'Selected' : 'Select'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Confirm Multiple Selection Button */}
+            {!isDisabled && currentSelection.length > 0 ? (
               <TouchableOpacity
-                key={svc.id || idx}
-                style={s.inlineSvcCard}
-                onPress={() => selectService(svc)}
+                style={s.confirmSvcBtn}
+                onPress={() => {
+                  if (isDisabled) return;
+                  setClickedMessageIds(prev => [...prev, msg.id]);
+                  
+                  // Combine selected services into a single unified service item
+                  const combinedName = currentSelection.map(s => s.name).join(' + ');
+                  const combinedPrice = currentSelection.reduce((sum, s) => sum + s.price, 0);
+                  const combinedService = {
+                    id: 'combined_' + currentSelection.map(s => s.id).join('_'),
+                    name: combinedName,
+                    price: combinedPrice,
+                    isCombined: true,
+                    servicesList: currentSelection
+                  };
+                  
+                  selectService(combinedService);
+                }}
               >
-                <View style={s.inlineSvcInfo}>
-                  <Text style={s.inlineSvcName}>⚡ {svc.name}</Text>
-                  <Text style={s.inlineSvcPrice}>PKR {svc.price.toLocaleString()}</Text>
-                </View>
-                <Text style={s.inlineSelectBtnText}>Select</Text>
+                <Text style={s.confirmSvcBtnText}>
+                  Confirm {currentSelection.length} {currentSelection.length === 1 ? 'Service' : 'Services'} (PKR {currentSelection.reduce((sum, s) => sum + s.price, 0).toLocaleString()})
+                </Text>
               </TouchableOpacity>
-            ))}
+            ) : null}
             
-            {/* Not sure card */}
+            {/* Fallback Option */}
             <TouchableOpacity
-              style={s.notSureCard}
-              onPress={() => handleNotSure(provider, pendingData?.intent)}
+              style={[s.notSureCard, isDisabled ? { opacity: 0.6 } : null]}
+              onPress={() => {
+                if (isDisabled) return;
+                setClickedMessageIds(prev => [...prev, msg.id]);
+                handleNotSure(provider, pendingData?.intent);
+              }}
+              disabled={isDisabled}
             >
               <Text style={s.notSureEmoji}>🤔</Text>
               <View style={s.notSureText}>
-                <Text style={s.notSureTitle}>Nahi pata kya chahiye?</Text>
-                <Text style={s.notSureSub}>Hamare AI se poochhein</Text>
+                <Text style={s.notSureTitle}>Nahi pta kia chahye koi baat nh</Text>
+                <Text style={s.notSureSub}>provider apky pss akr chk krlega</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -1212,23 +1532,28 @@ export default function ChatScreen({ navigation, route }) {
     }
     if (msg.type === 'service_suggestion') {
       const { service, provider } = msg.data;
+      const isClicked = clickedMessageIds.includes(msg.id);
+      const isDisabled = isClicked || stage !== 'services_shown';
       return (
         <View key={msg.id} style={s.rowBot}>
           <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
           <View style={s.bubbleBotWide}>
             <Text style={s.inlineMenuTitle}>💡 Recommended Service</Text>
             <TouchableOpacity
-              style={s.inlineSvcCard}
+              style={[s.inlineSvcCard, isDisabled ? { opacity: 0.65 } : null]}
               onPress={() => {
+                if (isDisabled) return;
+                setClickedMessageIds(prev => [...prev, msg.id]);
                 setSelectedProvider(provider);
                 selectService(service);
               }}
+              disabled={isDisabled}
             >
               <View style={s.inlineSvcInfo}>
                 <Text style={s.inlineSvcName}>⚡ {service?.name || 'Suggested Service'}</Text>
                 <Text style={s.inlineSvcPrice}>PKR {(service?.price || 1500).toLocaleString()}</Text>
               </View>
-              <Text style={s.inlineSelectBtnText}>Book Now</Text>
+              <Text style={s.inlineSelectBtnText}>{isDisabled ? 'Booked' : 'Book Now'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1236,6 +1561,8 @@ export default function ChatScreen({ navigation, route }) {
     }
     if (msg.type === 'time_slots') {
       const slots = msg.data;
+      const isClicked = clickedMessageIds.includes(msg.id);
+      const isDisabled = isClicked || stage !== 'awaiting_time';
       return (
         <View key={msg.id} style={s.rowBot}>
           <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
@@ -1246,8 +1573,13 @@ export default function ChatScreen({ navigation, route }) {
               {slots.map((slot, idx) => (
                 <TouchableOpacity
                   key={idx}
-                  style={s.slotItem}
-                  onPress={() => selectTimeSlot(slot)}
+                  style={[s.slotItem, isDisabled ? { opacity: 0.65 } : null]}
+                  onPress={() => {
+                    if (isDisabled) return;
+                    setClickedMessageIds(prev => [...prev, msg.id]);
+                    selectTimeSlot(slot);
+                  }}
+                  disabled={isDisabled}
                 >
                   <Text style={s.slotText}>{slot.label}</Text>
                 </TouchableOpacity>
@@ -1289,7 +1621,7 @@ export default function ChatScreen({ navigation, route }) {
                 <Text style={s.receiptLabel}>Cost Est:</Text>
                 <Text style={s.receiptValHighlight}>{booking.estimatedCost}</Text>
               </View>
-
+ 
               <TouchableOpacity
                 style={s.pdfButton}
                 activeOpacity={0.8}
@@ -1304,6 +1636,8 @@ export default function ChatScreen({ navigation, route }) {
     }
     if (msg.type === 'follow_up_interaction') {
       const { booking } = msg.data;
+      const isClicked = clickedMessageIds.includes(msg.id);
+      const isDisabled = isClicked;
       return (
         <View key={msg.id} style={s.rowBot}>
           <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
@@ -1311,14 +1645,24 @@ export default function ChatScreen({ navigation, route }) {
             <Text style={s.inlineMenuTitle}>💡 Confirm Job Status</Text>
             <View style={s.followUpRow}>
               <TouchableOpacity
-                style={[s.followUpBtn, { backgroundColor: '#00C853' }]}
-                onPress={() => handleJobDone(currentBookingId || booking?.booking_id)}
+                style={[s.followUpBtn, { backgroundColor: '#00C853' }, isDisabled ? { opacity: 0.65 } : null]}
+                onPress={() => {
+                  if (isDisabled) return;
+                  setClickedMessageIds(prev => [...prev, msg.id]);
+                  handleJobDone(currentBookingId || booking?.booking_id, msg.id);
+                }}
+                disabled={isDisabled}
               >
                 <Text style={s.followUpBtnText}>Yes, Job is Done ✅</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[s.followUpBtn, { backgroundColor: '#FF3D00' }]}
-                onPress={() => handleIssueRaised(currentBookingId || booking?.booking_id)}
+                style={[s.followUpBtn, { backgroundColor: '#FF3D00' }, isDisabled ? { opacity: 0.65 } : null]}
+                onPress={() => {
+                  if (isDisabled) return;
+                  setClickedMessageIds(prev => [...prev, msg.id]);
+                  handleIssueRaised(currentBookingId || booking?.booking_id, msg.id);
+                }}
+                disabled={isDisabled}
               >
                 <Text style={s.followUpBtnText}>No, Issue Raised ⚠️</Text>
               </TouchableOpacity>
@@ -1327,22 +1671,107 @@ export default function ChatScreen({ navigation, route }) {
         </View>
       );
     }
+    if (msg.type === 'rating_prompt') {
+      const { bookingId, providerName } = msg.data;
+      const selectedStars = ratingsMap[msg.id] || 0;
+      const isRated = selectedStars > 0;
+      
+      return (
+        <View key={msg.id} style={s.rowBot}>
+          <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
+          <View style={s.bubbleBotWide}>
+            <Text style={s.inlineMenuTitle}>⭐ Feedback & Rating</Text>
+            {isRated ? (
+              <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#00C853', marginBottom: 4 }}>
+                  Feedback Submitted!
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 4, marginBottom: 8 }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Ionicons
+                      key={star}
+                      name="star"
+                      size={24}
+                      color="#FFD700"
+                    />
+                  ))}
+                </View>
+                <Text style={{ fontSize: 12, color: C.textSec, textAlign: 'center' }}>
+                  Aapne {providerName} ko {selectedStars} stars diye hain. Shukriya!
+                </Text>
+              </View>
+            ) : (
+              <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                <Text style={{ fontSize: 13, color: '#1A1A2E', marginBottom: 8, fontWeight: '600' }}>
+                  Aapka {providerName} ke sath experience kaisa raha?
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={async () => {
+                        setRatingsMap(prev => ({ ...prev, [msg.id]: star }));
+                        try {
+                          addLog('AutomationAgent', `Submitting rating of ${star} stars for booking: ${bookingId}`, 'API_Call', 'In-Progress');
+                          const response = await fetch(`${BASE_URL}/api/bookings/${bookingId}/complete`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ rating: star })
+                          });
+                          const resData = await response.json();
+                          if (resData.success) {
+                            addLog('AutomationAgent', `Rating of ${star} stars saved successfully!`, 'FirestoreWrite', 'Completed');
+                          }
+                        } catch (err) {
+                          console.error('Failed to submit rating:', err);
+                        }
+                      }}
+                    >
+                      <Ionicons
+                        name="star-outline"
+                        size={32}
+                        color="#FFD700"
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={{ fontSize: 11, color: C.textMuted }}>
+                  Tap stars to rate & complete
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      );
+    }
     if (msg.type === 'address_confirm') {
       const { savedAddress, originalRequest } = msg.data;
+      const isClicked = clickedMessageIds.includes(msg.id);
+      const isDisabled = isClicked || stage !== 'awaiting_address_confirm';
       return (
         <View key={msg.id} style={s.rowBot}>
           <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
           <View style={s.bubbleBotWide}>
             <View style={s.addressConfirmCard}>
               <TouchableOpacity
-                style={s.addrConfirmYes}
-                onPress={() => handleAddressConfirmed(savedAddress, originalRequest)}
+                style={[s.addrConfirmYes, isDisabled ? { opacity: 0.65 } : null]}
+                onPress={() => {
+                  if (isDisabled) return;
+                  setClickedMessageIds(prev => [...prev, msg.id]);
+                  handleAddressConfirmed(savedAddress, originalRequest);
+                }}
+                disabled={isDisabled}
               >
                 <Text style={s.addrConfirmBtnText}>Haan, isi address par ✅</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={s.addrConfirmNo}
-                onPress={() => handleAddressChange(originalRequest)}
+                style={[s.addrConfirmNo, isDisabled ? { opacity: 0.65 } : null]}
+                onPress={() => {
+                  if (isDisabled) return;
+                  setClickedMessageIds(prev => [...prev, msg.id]);
+                  handleAddressChange(originalRequest);
+                }}
+                disabled={isDisabled}
               >
                 <Text style={s.addrConfirmBtnText}>Nahi, address badlein 📍</Text>
               </TouchableOpacity>
@@ -1405,9 +1834,51 @@ export default function ChatScreen({ navigation, route }) {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F6FA' }} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       
+      {/* History Sidebar Panel Overlay */}
+      {historyVisible && (
+        <View style={s.historySidebarOverlay}>
+          <TouchableOpacity style={s.historySidebarBackdrop} activeOpacity={1} onPress={() => setHistoryVisible(false)} />
+          <View style={s.historySidebar}>
+            <View style={s.historyHeader}>
+              <Text style={s.historyTitle}>Chat History 📚</Text>
+              <TouchableOpacity onPress={() => setHistoryVisible(false)}>
+                <Ionicons name="close" size={24} color={C.text} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={s.sidebarNewChatBtn} onPress={() => { startNewChat(); setHistoryVisible(false); }}>
+              <Ionicons name="add" size={18} color="#FFF" />
+              <Text style={s.sidebarNewChatText}>Naya Chat Shuru Karein</Text>
+            </TouchableOpacity>
+
+            <ScrollView style={s.historyList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {sessions.map((session) => {
+                const isActive = session.id === currentSessionId;
+                return (
+                  <View key={session.id} style={[s.historyItemWrap, isActive ? s.historyItemActive : null]}>
+                    <TouchableOpacity style={s.historyItemClickable} onPress={() => selectSession(session)}>
+                      <Ionicons name="chatbubble-ellipses-outline" size={16} color={isActive ? C.primary : C.textSec} style={{ marginRight: 8 }} />
+                      <Text style={[s.historyItemText, isActive ? s.historyItemTextActive : null]} numberOfLines={1}>
+                        {session.title || 'Naya Chat'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.historyDeleteBtn} onPress={() => deleteSession(session.id)}>
+                      <Ionicons name="trash-outline" size={16} color="#FF3D00" />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      )}
+
       {/* Header — stays fixed at top */}
       <View style={s.header}>
         <View style={s.headerLeft}>
+          <TouchableOpacity style={{ marginRight: 10, padding: 4 }} onPress={() => setHistoryVisible(true)}>
+            <Ionicons name="menu-outline" size={26} color={C.text} />
+          </TouchableOpacity>
           <View style={s.logoDot} />
           <View>
             <View style={s.logoRow}>
@@ -1430,18 +1901,12 @@ export default function ChatScreen({ navigation, route }) {
               <Text style={s.locTextDenied}> Enable GPS</Text>
             </TouchableOpacity>
           ) : null}
-          {(stage === 'providers_shown' || stage === 'confirmed' || stage === 'services_shown') ? (
-            <TouchableOpacity style={s.newChatBtn} onPress={stage === 'confirmed' ? () => {
-              setMessages([GREETING]);
-              setStage('idle');
-              setPendingData(null);
-              setSelectedProvider(null);
-              setSelectedService(null);
-            } : resetConversation}>
-              <Ionicons name="add-circle-outline" size={16} color={C.primary} />
-              <Text style={s.traceBtnText}>{stage === 'confirmed' ? ' New Chat' : ' New Request'}</Text>
-            </TouchableOpacity>
-          ) : null}
+          
+          <TouchableOpacity style={s.newChatBtn} onPress={startNewChat}>
+            <Ionicons name="add" size={16} color={C.primary} />
+            <Text style={s.traceBtnText}> New Chat</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={s.devBtn} onPress={() => navigation.navigate('AgentTrace')}>
             <Text style={s.devBtnText}>🤖 Trace Logs</Text>
           </TouchableOpacity>
@@ -1815,5 +2280,126 @@ const s = StyleSheet.create({
     color: '#B36B00',
     fontSize: 12,
     fontWeight: '700',
+  },
+  // PREMIUM MULTI-SELECT CATALOG STYLES
+  inlineSvcCardSelected: {
+    borderColor: '#00C853',
+    backgroundColor: '#F0FFF4',
+    borderWidth: 2,
+  },
+  confirmSvcBtn: {
+    backgroundColor: '#00C853',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+    shadowColor: '#00C853',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  confirmSvcBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+
+  // SLIDING CHAT HISTORY DRAWER/SIDEBAR STYLES
+  historySidebarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
+    flexDirection: 'row',
+  },
+  historySidebarBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  historySidebar: {
+    width: 280,
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 0 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 16,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E4E5EF',
+    paddingBottom: 12,
+    marginBottom: 16,
+  },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A1A2E',
+  },
+  sidebarNewChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00C853',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  sidebarNewChatText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  historyList: {
+    flex: 1,
+  },
+  historyItemWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8F9FC',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E4E5EF',
+  },
+  historyItemActive: {
+    borderColor: '#00C853',
+    backgroundColor: '#F0FFF4',
+  },
+  historyItemClickable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyItemText: {
+    fontSize: 13,
+    color: '#555570',
+    fontWeight: '500',
+  },
+  historyItemTextActive: {
+    color: '#00A843',
+    fontWeight: '700',
+  },
+  historyDeleteBtn: {
+    padding: 4,
+    marginLeft: 6,
   },
 });
