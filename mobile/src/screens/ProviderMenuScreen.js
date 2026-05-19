@@ -141,7 +141,7 @@ export default function ProviderMenuScreen({ route, navigation }) {
               <Text style={s.provInfoName}>{provider.name}</Text>
               <View style={s.provInfoStats}>
                 <View style={s.statBadge}>
-                  <Text style={s.statBadgeText}>⭐ {provider.simulated_state?.rating?.toFixed(1) || '4.8'}</Text>
+                  <Text style={s.statBadgeText}>⭐ {Number(provider.simulated_state?.rating || 4.8).toFixed(1)}</Text>
                 </View>
                 <View style={s.statBadge}>
                   <Text style={s.statBadgeText}>✅ {Math.round((provider.simulated_state?.on_time_score || 0.9) * 100)}% on-time</Text>

@@ -7,8 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { discoverProviders, bookProvider } from '../config/api';
+import { discoverProviders, bookProvider, getProviderDetails, BASE_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 const C = {
   bg: '#F5F6FA',
@@ -85,19 +87,95 @@ const SERVICES_NEEDING_PARTS = [
 ];
 
 export default function ChatScreen({ navigation }) {
-  const { user } = useAuth();
+  const { user, incrementBookingCount } = useAuth();
   const [messages, setMessages] = useState([GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   // Staged conversation state
-  const [stage, setStage] = useState('idle'); // idle | providers_shown | confirmed
-  const [pendingData, setPendingData] = useState(null); // { intent, ranking, trace_id }
+  const [stage, setStage] = useState('idle'); // idle | providers_shown | services_shown | awaiting_time | confirmed
+  const [pendingData, setPendingData] = useState(null); // { intent, ranking, trace_id, originalPrompt }
   // GPS location state
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('unknown'); // 'unknown' | 'granted' | 'denied'
   const [currentStep, setCurrentStep] = useState(0);
   const [currentServiceType, setCurrentServiceType] = useState('');
   const scrollRef = useRef();
+
+  // Inline state for agentic matching/service selections
+  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);
+  const [currentBookingId, setCurrentBookingId] = useState(null);
+  const [showLogs, setShowLogs] = useState(false);
+  const [agentLogs, setAgentLogs] = useState([
+    { time: new Date().toLocaleTimeString('en-US', { hour12: false }), agent: 'System', action: 'KaamConnect AI Agentic Session Initialized', tool: 'LocalInit', result: 'Ready' }
+  ]);
+
+  const addLog = (agent, action, tool = '—', result = 'Success') => {
+    const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
+    setAgentLogs(p => [...p, { time: timeStr, agent, action, tool, result }]);
+  };
+
+  const handleJobDone = async (bookingId) => {
+    if (!bookingId) return;
+    try {
+      addLog('AutomationAgent', `Completing booking: ${bookingId}`, 'API_Call', 'In-Progress');
+      const response = await fetch(`${BASE_URL}/api/bookings/${bookingId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      if (data.success) {
+        addLog('AutomationAgent', `Booking completed: ${bookingId}`, 'FirestoreWrite', 'Completed');
+        add({
+          id: uid(),
+          type: 'bot',
+          timestamp: ts(),
+          text: '💖 Bohat shukriya confirm karne ka! Booking status database mein COMPLETE mark ho chuki hai. Stay blessed! ✨'
+        });
+      } else {
+        throw new Error(data.error || 'Server error');
+      }
+    } catch (e) {
+      console.error('[ChatScreen] Error completing booking:', e.message);
+      add({
+        id: uid(),
+        type: 'bot',
+        timestamp: ts(),
+        text: '💖 Bohat shukriya confirm karne ka! Agar aapko koi aur madad chahiye ho toh humein chat mein likhein. Stay blessed! ✨'
+      });
+    }
+  };
+
+  const handleIssueRaised = async (bookingId) => {
+    if (!bookingId) return;
+    try {
+      addLog('AutomationAgent', `Raising issue for booking: ${bookingId}`, 'API_Call', 'In-Progress');
+      const response = await fetch(`${BASE_URL}/api/bookings/${bookingId}/issue`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await response.json();
+      if (data.success) {
+        addLog('AutomationAgent', `Issue raised for booking: ${bookingId}`, 'FirestoreWrite', 'Completed');
+        add({
+          id: uid(),
+          type: 'bot',
+          timestamp: ts(),
+          text: '⚠️ Oh ho! Humne database mein issue raise kar diya hai aur ticket coordinate ho rahi hai. Hamara customer care representative jald hi aapse contact karega details ke sath. 📞'
+        });
+      } else {
+        throw new Error(data.error || 'Server error');
+      }
+    } catch (e) {
+      console.error('[ChatScreen] Error raising issue:', e.message);
+      add({
+        id: uid(),
+        type: 'bot',
+        timestamp: ts(),
+        text: '⚠️ Oh ho! Hum iski gehraee se jaanch kar rahe hain. Hamara customer care representative jald hi aapse contact karega details ke sath. 📞'
+      });
+    }
+  };
 
   // ── GPS LOCATION ──────────────────────────────
   const requestLocation = async () => {
@@ -176,6 +254,70 @@ export default function ChatScreen({ navigation }) {
     return () => intervals.forEach(clearTimeout);
   };
 
+  // Helper for date/time parsing (Urdu & English)
+  const parseTimeSlot = (pref) => {
+    const t = pref.toLowerCase();
+    const today = new Date();
+    
+    let day = 'today';
+    let dateObj = today;
+    if (t.includes('tomorrow') || t.includes('kal')) {
+      day = 'tomorrow';
+      dateObj = new Date();
+      dateObj.setDate(today.getDate() + 1);
+    } else if (t.includes('parson') || t.includes('day after')) {
+      day = 'day_after';
+      dateObj = new Date();
+      dateObj.setDate(today.getDate() + 2);
+    }
+
+    let slot = 'morning';
+    let timeStr = '10:00 AM';
+    if (t.includes('evening') || t.includes('shaam')) {
+      slot = 'evening';
+      timeStr = '05:00 PM';
+    } else if (t.includes('afternoon') || t.includes('dopahar')) {
+      slot = 'afternoon';
+      timeStr = '02:00 PM';
+    } else if (t.includes('night') || t.includes('raat')) {
+      slot = 'evening';
+      timeStr = '08:00 PM';
+    }
+
+    const dateFormatted = dateObj.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric'
+    });
+
+    return {
+      date: dateFormatted,
+      displayTime: timeStr,
+      slotName: slot
+    };
+  };
+
+  const hasTimeInMessage = (text) => {
+    const t = text.toLowerCase();
+    return (
+      t.includes('kal') ||
+      t.includes('tomorrow') ||
+      t.includes('aaj') ||
+      t.includes('today') ||
+      t.includes('parson') ||
+      t.includes('day after') ||
+      t.includes('subah') ||
+      t.includes('morning') ||
+      t.includes('dopahar') ||
+      t.includes('afternoon') ||
+      t.includes('shaam') ||
+      t.includes('evening') ||
+      t.includes('raat') ||
+      t.includes('night') ||
+      /\b\d{1,2}\s*(am|pm|baje|o'clock)\b/i.test(t)
+    );
+  };
+
   // ── SEND MESSAGE ──────────────────────────────
   const sendMessage = async (overrideText) => {
     const text = (overrideText || input).trim();
@@ -189,6 +331,54 @@ export default function ChatScreen({ navigation }) {
     add({ id: thinkId, type: 'thinking', text: '', timestamp: ts() });
 
     try {
+      // ── If awaiting problem description ──
+      if (stage === 'awaiting_problem_description') {
+        const problemText = text.trim();
+        const provider = pendingData?.selectedProvider;
+        
+        drop(thinkId);
+        
+        // Ask Groq to suggest service based on problem
+        try {
+          const response = await fetch(`${BASE_URL}/api/suggest-service`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              problem: problemText,
+              provider_services: provider?.services || [],
+              service_type: pendingData?.intent?.service_type
+            })
+          });
+          const data = await response.json();
+          
+          add({
+            id: uid(), type: 'bot', timestamp: ts(),
+            text: `Aapke masle ke mutabiq main suggest karta hoon:\n\n` +
+              `✅ ${data.suggested_service}\n\n` +
+              `${data.reasoning}\n\n` +
+              `Kya aap yeh service book karna chahte hain?`
+          });
+          
+          // Show the specific service as a bookable option
+          add({
+            id: uid(), type: 'service_suggestion', timestamp: ts(),
+            data: { service: data.service_object, provider }
+          });
+          
+          setStage('providers_shown');
+        } catch (error) {
+          add({
+            id: uid(), type: 'bot', timestamp: ts(),
+            text: `Samajh gaya! Main aapko ${provider?.name} ` +
+              `ki services dikha raha hoon — wahan se select kar lein.`
+          });
+          setStage('providers_shown');
+        }
+        setLoading(false);
+        cleanup();
+        return;
+      }
+
       // ── If awaiting location ──
       if (stage === 'awaiting_location' && pendingData?.originalPrompt) {
         drop(thinkId);
@@ -219,16 +409,7 @@ export default function ChatScreen({ navigation }) {
           }
 
           if (chosen) {
-            navigation.navigate('ManualBooking', {
-              screen: 'ProviderMenuScreen',
-              params: {
-                providerId: chosen.provider_id || chosen.id,
-                providerName: chosen.name,
-                source: 'aiChat',
-                pendingIntent: pendingData?.intent,
-                pendingTraceId: pendingData?.trace_id,
-              }
-            });
+            await selectProvider(chosen);
           } else {
             add({
               id: uid(), type: 'bot', timestamp: ts(),
@@ -252,13 +433,24 @@ export default function ChatScreen({ navigation }) {
       }
 
       // ── Stage 1+2+3: Discover providers ──
-      // Intercept if no GPS and no location in message (and no stored userArea)
+      // Check if location already stored in AsyncStorage
+      const savedAddrStr = await AsyncStorage.getItem('selected_address');
       const storedArea = await AsyncStorage.getItem('userArea');
-      if (locationStatus === 'denied' && !hasLocationInMessage(text) && !storedArea) {
+      let hasSavedLoc = false;
+      if (savedAddrStr) {
+        try {
+          const parsed = JSON.parse(savedAddrStr);
+          if (parsed.address || parsed.area || parsed.name) hasSavedLoc = true;
+        } catch (e) {}
+      }
+      if (storedArea) hasSavedLoc = true;
+
+      // Intercept if no location available in manual booking AND not in user prompt
+      if (!hasSavedLoc && !hasLocationInMessage(text)) {
         drop(thinkId);
         add({
           id: uid(), type: 'bot', timestamp: ts(),
-          text: 'Kripya apna area batain (e.g. DHA Phase 6 ya Gulshan-e-Iqbal) taake hum aapko qareeb ke providers dikha sakein. 📍',
+          text: 'Apka location set nahi hai. Kripya apna area batain (e.g. Clifton ya DHA Karachi) taake hum aapko qareeb ke providers dikha sakein. 📍',
         });
         setStage('awaiting_location');
         setPendingData({ originalPrompt: text });
@@ -282,11 +474,25 @@ export default function ChatScreen({ navigation }) {
   // ── DISCOVER PROVIDERS (reusable) ─────────────
   const handleNewServiceRequest = async (text, thinkId) => {
     let enrichedText = text;
+    addLog('IntentAgent', `Parsing user request intent: "${text}"`, 'NLP-Parser', 'In Progress');
+    
     try {
+      const savedAddrStr = await AsyncStorage.getItem('selected_address');
       const userArea = await AsyncStorage.getItem('userArea');
+      let currentArea = userArea;
+      if (savedAddrStr) {
+        const parsed = JSON.parse(savedAddrStr);
+        currentArea = parsed.address || parsed.area || parsed.name || userArea;
+      }
+      
       const locationMentioned = /karachi|clifton|gulshan|defence|dha|nazimabad|korangi|malir|saddar|pechs|bahadurabad|islamabad|g-13|f-7|f-6|g-11|i-8/i.test(text);
-      if (!locationMentioned && userArea) {
-        enrichedText = `${text} (User is located in: ${userArea})`;
+      if (!locationMentioned && currentArea) {
+        enrichedText = `${text} (User is located in: ${currentArea})`;
+        addLog('DiscoveryAgent', `Resolved user location from saved address: "${currentArea}"`, 'AsyncStorage', 'Resolved');
+      } else if (locationMentioned) {
+        addLog('DiscoveryAgent', 'Resolved user location from user prompt', 'TextParsing', 'Resolved');
+      } else {
+        addLog('DiscoveryAgent', 'No saved location found and no location in prompt', 'Validation', 'Awaiting Location');
       }
     } catch (e) {
       console.log('Failed to check userArea in ChatScreen:', e);
@@ -296,11 +502,13 @@ export default function ChatScreen({ navigation }) {
     drop(thinkId);
 
     if (result.status === 'needs_clarification') {
+      addLog('IntentAgent', 'Ambiguous request context requires user clarification', 'IntentClassifier', 'Clarifying');
       add({
         id: uid(), type: 'bot', timestamp: ts(),
         text: result.clarification || 'Aap kaunsi cheez theek karwana chahte hain — AC, geyser, wiring, ya kuch aur?',
       });
     } else if (result.status === 'no_providers') {
+      addLog('DiscoveryAgent', 'No providers currently matching filters in target area', 'FirestoreQuery', 'Empty Results');
       const svcType = result.intent?.service_type || '';
       add({
         id: uid(), type: 'bot', timestamp: ts(),
@@ -309,6 +517,10 @@ export default function ChatScreen({ navigation }) {
     } else if (result.status === 'providers_found') {
       const svcType = result.intent?.service_type || '';
       setCurrentServiceType(svcType);
+      
+      addLog('DiscoveryAgent', `Queried and retrieved available ${svcType} technicians`, 'FirestoreQuery', 'Success');
+      addLog('MatchingAgent', `Ranking providers in Clifton/DHA based on distance and rating`, 'DecisionMatrix', 'Completed');
+
       add({
         id: uid(), type: 'bot', timestamp: ts(),
         text: `${svcType} ke liye aapke area mein best ${getServiceLabel(svcType)} dhundh liye. 🔍`,
@@ -324,38 +536,275 @@ export default function ChatScreen({ navigation }) {
         text: `Kaun sa ${getServiceLabel(svcType)} pasand hai? 😊${sparePartsText}`,
       });
       setStage('providers_shown');
-      setPendingData({ intent: result.intent, ranking: result.ranking, trace_id: result.trace_id });
+      setPendingData({ intent: result.intent, ranking: result.ranking, trace_id: result.trace_id, originalPrompt: text });
     }
   };
 
-  // ── BOOK A CHOSEN PROVIDER ────────────────────
-  const handleBooking = async (provider) => {
-    add({
-      id: uid(), type: 'bot', timestamp: ts(),
-      text: `✅ Aapne ${provider.name} ko select kiya!\n\nBooking confirm ho rahi hai...`,
-    });
+  // ── SELECT PROVIDER (INLINE CATALOG FETCH) ────
+  const selectProvider = async (provider) => {
+    if (loading) return;
     setLoading(true);
+    addLog('DiscoveryAgent', `Provider chosen: ${provider.name}`, 'UserSelection', 'Provider Selected');
+    
+    // Add user response bubble
+    add({ id: uid(), type: 'user', text: `${provider.name} ko select kiya`, timestamp: ts() });
+    
+    const thinkId = uid();
+    add({ id: thinkId, type: 'thinking', text: '', timestamp: ts() });
+
     try {
-      const result = await bookProvider(provider, pendingData.intent, pendingData.trace_id, user?.uid || 'mobile-user');
-      console.log('[BookResult] slot:', result.booking?.slot);
-      console.log('[BookResult] full booking:', JSON.stringify(result.booking));
-      if (result.status === 'booking_confirmed') {
-        // Show booking summary
+      let providerDetails = null;
+      let isGoogleMaps = provider.source === 'google_maps' || String(provider.provider_id || provider.id).startsWith('ChI');
+      
+      if (!isGoogleMaps) {
+        try {
+          const res = await getProviderDetails(provider.provider_id || provider.id);
+          if (res.success && res.provider) {
+            providerDetails = res.provider;
+          }
+        } catch (e) {
+          console.log('[ChatScreen] Error fetching DB provider details, falling back:', e.message);
+        }
+      }
+
+      drop(thinkId);
+
+      if (providerDetails && providerDetails.services && providerDetails.services.length > 0) {
+        setSelectedProvider(providerDetails);
+        addLog('MatchingAgent', `Fetched ${providerDetails.services.length} services for ${providerDetails.name}`, 'getProviderDetails', 'Success');
+        
+        // Add services menu bubble inline!
         add({
-          id: uid(), type: 'booking', timestamp: ts(), data: {
-            booking: result.booking, provider, follow_up: result.follow_up,
+          id: uid(),
+          type: 'services_menu',
+          timestamp: ts(),
+          data: {
+            provider: providerDetails,
+            services: providerDetails.services
           }
         });
-        // Show confirmation
+      } else {
+        // Fallback service catalog
+        const fallbackServices = [
+          { id: 'svc_1', name: `${getServiceLabel(currentServiceType)} General Service`, price: 1500 },
+          { id: 'svc_2', name: `${getServiceLabel(currentServiceType)} Diagnostic & Repair`, price: 2500 },
+          { id: 'svc_3', name: `${getServiceLabel(currentServiceType)} Comprehensive Care`, price: 4000 }
+        ];
+        const fullProvider = { ...provider, services: fallbackServices };
+        setSelectedProvider(fullProvider);
+        addLog('MatchingAgent', 'Fallback service catalog populated', 'MockServiceCatalog', 'Fallback');
         add({
-          id: uid(), type: 'bot', timestamp: ts(),
-          text: `✅ Booking Confirmed! 🎉\nBooking ID: ${result.booking?.booking_id}\n${provider.name} ko notify kar diya gaya hai.\n\nAapko 1 ghante pehle reminder milega.\n🔔 Active Requests tab mein apni booking dekhein.`,
+          id: uid(),
+          type: 'services_menu',
+          timestamp: ts(),
+          data: {
+            provider: fullProvider,
+            services: fallbackServices
+          }
+        });
+      }
+      setStage('services_shown');
+    } catch (e) {
+      console.error(e);
+      drop(thinkId);
+      add({ id: uid(), type: 'error', text: 'Provider services fetch karne mein masla aya.', timestamp: ts() });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNotSure = (provider, intent) => {
+    add({
+      id: uid(), type: 'bot', timestamp: ts(),
+      text: `Koi baat nahi! 😊 Apna masla describe karein ` +
+        `aur main suggest karunga ke ${provider.name} ` +
+        `se kaunsi service leni chahiye.\n\n` +
+        `Maslan: "Ghar mein light nahi aa rahi" ya ` +
+        `"AC thanda nahi kar raha"`
+    });
+    setStage('awaiting_problem_description');
+    setPendingData(prev => ({ ...prev, selectedProvider: provider }));
+  };
+
+  const selectService = (service) => {
+    setSelectedService(service);
+    addLog('MatchingAgent', `Service chosen: ${service.name} (PKR ${service.price})`, 'UserSelection', 'Service Selected');
+    add({ id: uid(), type: 'user', text: `${service.name} (PKR ${service.price}) choose kiya`, timestamp: ts() });
+    
+    // Check if time slot was already mentioned in original user prompt
+    const originalText = pendingData?.originalPrompt || messages.find(m => m.type === 'user')?.text || '';
+    if (hasTimeInMessage(originalText)) {
+      addLog('BookingAgent', 'Date/Time parsed from prompt. Auto-booking initiated...', 'parseTimeSlot', 'Found');
+      executeAutoBooking(service, originalText);
+    } else {
+      addLog('BookingAgent', 'No Date/Time in prompt. Prompting user with slot options.', 'PromptSlots', 'Waiting');
+      const slots = generateTimeSlots();
+      add({
+        id: uid(),
+        type: 'time_slots',
+        timestamp: ts(),
+        data: slots
+      });
+      setStage('awaiting_time');
+    }
+  };
+
+  const generateTimeSlots = () => {
+    const slots = [];
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+
+    const times = [
+      { label: 'Morning', hour: 10, display: '10:00 AM' },
+      { label: 'Afternoon', hour: 14, display: '02:00 PM' },
+      { label: 'Evening', hour: 17, display: '05:00 PM' }
+    ];
+
+    times.forEach(t => {
+      slots.push({
+        label: `Today ${t.label} (${t.display})`,
+        value: `Today at ${t.display}`,
+        hour: t.hour,
+        date: today
+      });
+    });
+
+    times.forEach(t => {
+      slots.push({
+        label: `Tomorrow ${t.label} (${t.display})`,
+        value: `Tomorrow at ${t.display}`,
+        hour: t.hour,
+        date: tomorrow
+      });
+    });
+
+    return slots;
+  };
+
+  const selectTimeSlot = (slot) => {
+    addLog('BookingAgent', `Time slot chosen: ${slot.value}`, 'TimeSelected', 'Success');
+    add({ id: uid(), type: 'user', text: `${slot.label} select kiya`, timestamp: ts() });
+    executeAutoBooking(selectedService, slot.value);
+  };
+
+  const executeAutoBooking = async (service, timePref) => {
+    setLoading(true);
+    addLog('BookingAgent', 'Executing secure booking transaction...', 'bookProvider API', 'Initiated');
+    
+    const thinkId = uid();
+    add({ id: thinkId, type: 'thinking', text: '', timestamp: ts() });
+
+    try {
+      // 1. Resolve Location
+      let location = 'Karachi';
+      const savedAddrStr = await AsyncStorage.getItem('selected_address');
+      const savedArea = await AsyncStorage.getItem('userArea');
+      if (savedAddrStr) {
+        const parsed = JSON.parse(savedAddrStr);
+        location = parsed.address || parsed.area || parsed.name || savedArea || location;
+      } else if (savedArea) {
+        location = savedArea;
+      }
+
+      // Parse time preference
+      const timeParsed = parseTimeSlot(timePref);
+
+      // Construct request payload
+      const updatedIntent = {
+        ...(pendingData?.intent || {}),
+        service_type: currentServiceType,
+        location,
+        time_preference: timePref
+      };
+
+      addLog('BookingAgent', `Sending booking request to backend`, 'bookProvider', 'Request');
+
+      // Call real backend booking
+      const result = await bookProvider(
+        selectedProvider, 
+        updatedIntent, 
+        pendingData?.trace_id || `TR-${Date.now().toString(36)}`, 
+        user?.uid || 'mobile-user'
+      );
+
+      drop(thinkId);
+
+      if (result.status === 'booking_confirmed') {
+        incrementBookingCount().catch(console.error);
+        const bk = result.booking;
+        setCurrentBookingId(bk?.booking_id || bk?.bookingId);
+        
+        // Render booking card
+        add({
+          id: uid(),
+          type: 'booking_confirmed',
+          timestamp: ts(),
+          data: {
+            booking: {
+              booking_id: bk?.booking_id || bk?.bookingId || `BK-${Date.now()}`,
+              location: bk?.location || location,
+              scheduledDate: timeParsed.date,
+              scheduledTime: timeParsed.displayTime,
+              estimatedCost: `PKR ${(service.price || 1500).toLocaleString()}`,
+              provider: selectedProvider?.name || 'Specialist'
+            },
+            provider: selectedProvider,
+            serviceName: service.name
+          }
         });
 
-        // Automated post-booking follow-up message
-        const serviceType = result.booking?.service_type || pendingData?.intent?.service_type || '';
-        const slotDate = result.booking?.slot ? new Date(result.booking.slot) : new Date();
-        const arrivalDisplay = slotDate.toLocaleString('en-US', {
+        // Show warm success greeting
+        add({
+          id: uid(),
+          type: 'bot',
+          timestamp: ts(),
+          text: `🎉 Aapki booking successfully CONFIRM ho gayi hai!\n\n${selectedProvider?.name} ko notify kar diya gaya hai aur wo schedule ke mutabiq aapke address par pohanch jayenge.\n\nNiche diye gaye button se aap download kar sakte hain iska certified invoice receipt! 🧾`,
+        });
+
+        addLog('BookingAgent', `Booking confirmed: ${bk?.booking_id || 'BK-SUCCESS'}`, 'FirestoreWrite', 'Completed');
+
+        // Start follow-up automation simulation
+        simulateFollowUps(bk || { booking_id: 'BK-SUCCESS' });
+
+        setStage('confirmed');
+      } else {
+        throw new Error('Booking failed');
+      }
+    } catch (e) {
+      console.error(e);
+      drop(thinkId);
+      add({ id: uid(), type: 'error', text: 'Booking complete karne mein masla aya. Backend verify karein.', timestamp: ts() });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const simulateFollowUps = (booking) => {
+    addLog('AutomationAgent', 'Scheduled pre-appointment automated reminders & completions', 'Scheduler', 'Active');
+    
+    const _providerName = booking?.provider_name 
+      || selectedProvider?.name 
+      || 'Your provider';
+    
+    const _serviceType = booking?.service_type 
+      || currentServiceType 
+      || '';
+    
+    const _serviceLabel = SERVICE_LABELS[_serviceType] 
+      || _serviceType?.replace(/_/g,' ') 
+      || 'service';
+    
+    const _phone = selectedProvider?.phone 
+      || selectedProvider?.simulated_state?.phone 
+      || 'Contact via app';
+    
+    const _address = booking?.user_details?.address
+      || booking?.location
+      || 'your address';
+    
+    const _slotDate = booking?.slot 
+      ? new Date(booking.slot).toLocaleString('en-US', {
           timeZone: 'Asia/Karachi',
           weekday: 'long',
           month: 'short',
@@ -363,45 +812,151 @@ export default function ChatScreen({ navigation }) {
           hour: '2-digit',
           minute: '2-digit',
           hour12: true
-        });
+        })
+      : 'scheduled time';
 
-        setTimeout(() => {
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            type: 'bot',
-            text: '🔔 Reminder set for 1 hour before your appointment.\n\n' +
-              '📋 Booking ID: ' + (result.booking?.booking_id || 'BK-XXX') + '\n' +
-              `⏰ Your ${getServiceLabel(serviceType)} will arrive on ${arrivalDisplay}.\n\n` +
-              'Track your booking in the Requests tab.',
-            timestamp: new Date()
-          }]);
-        }, 1000);
-
-        setStage('confirmed');
-        setPendingData(null);
-      }
-    } catch (err) {
+    // 1. Reminder simulation (after 4 seconds)
+    setTimeout(() => {
+      addLog('AutomationAgent', 'Triggering pre-appointment SMS & Local Notification reminder', 'expo-notifications', 'Sent');
       add({
-        id: uid(), type: 'error', timestamp: ts(),
-        text: 'Booking mein masla aaya — dobara try karein.',
+        id: uid(),
+        type: 'bot',
+        timestamp: ts(),
+        text: `🔔 Reminder\n\nAapka ${_serviceLabel} appointment:\n\n` +
+          `👤 Provider: ${_providerName}\n` +
+          `📅 Time: ${_slotDate}\n` +
+          `📍 Address: ${_address}\n\n` +
+          `Provider waqt par aapke paas pohonch jayega. ✅\n\n` +
+          `_(This is a demo simulation. In production, reminders would fire at actual scheduled times.)_`
       });
-    } finally { setLoading(false); }
+    }, 4000);
+
+    // 2. Status Update simulation (after 9 seconds)
+    setTimeout(() => {
+      addLog('AutomationAgent', 'Simulating provider status change: En Route', 'FirestoreUpdate', 'EnRoute');
+      add({
+        id: uid(),
+        type: 'bot',
+        timestamp: ts(),
+        text: `🚗 Status Update: En Route\n\n` +
+          `${_providerName} aapki taraf rawana ho chuke hain.\n\n` +
+          `📞 Contact: ${_phone}\n` +
+          `📍 ETA: 15 minutes\n` +
+          `🕐 Appointment: ${_slotDate}`
+      });
+    }, 9000);
+
+    // 3. Completion confirmation simulation (after 15 seconds)
+    setTimeout(() => {
+      addLog('AutomationAgent', 'Simulating job completion by provider app', 'FirestoreUpdate', 'Completed');
+      add({
+        id: uid(),
+        type: 'bot',
+        timestamp: ts(),
+        text: `✅ Service Completed\n\n` +
+          `${_providerName} ne aapka ${_serviceLabel} ` +
+          `service successfully complete kar liya hai!\n\n` +
+          `Kya kaam sahi tarike se hua? 😊`
+      });
+
+      // Show inline follow-up interaction buttons!
+      add({
+        id: uid(),
+        type: 'follow_up_interaction',
+        timestamp: ts(),
+        data: {
+          booking
+        }
+      });
+    }, 15000);
   };
 
-  // ── QUICK SELECT PROVIDER (tap on card) ───────
-  const selectProvider = (provider) => {
-    if (stage !== 'providers_shown' || loading) return;
-    add({ id: uid(), type: 'user', text: `${provider.name} select kiya`, timestamp: ts() });
-    navigation.navigate('ManualBooking', {
-      screen: 'ProviderMenuScreen',
-      params: {
-        providerId: provider.provider_id || provider.id,
-        providerName: provider.name,
-        source: 'aiChat',
-        pendingIntent: pendingData?.intent,
-        pendingTraceId: pendingData?.trace_id,
-      }
-    });
+  const downloadReceiptPDF = async (booking, provider, serviceName) => {
+    addLog('System', 'Generating PDF Invoice Receipt...', 'expo-print', 'Processing');
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>KaamConnect Invoice</title>
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1A1A2E; margin: 0; padding: 40px; background-color: #F8F9FC; }
+          .invoice-box { max-width: 600px; margin: auto; padding: 30px; border: 1px solid #E4E5EF; background: #FFFFFF; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00C853; padding-bottom: 20px; }
+          .logo { font-size: 24px; font-weight: bold; color: #1A1A2E; }
+          .logo span { color: #00C853; }
+          .badge { background-color: #00C853; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+          .details-table { width: 100%; margin-top: 30px; border-collapse: collapse; }
+          .details-table td { padding: 10px; border-bottom: 1px solid #F0F0F8; font-size: 14px; }
+          .details-table tr:last-child td { border-bottom: none; }
+          .label { color: #555570; font-weight: 600; width: 40%; }
+          .value { color: #1A1A2E; font-weight: 500; }
+          .total-box { margin-top: 30px; padding: 15px; background: rgba(0, 200, 83, 0.06); border: 1px dashed #00C853; border-radius: 8px; text-align: center; }
+          .total-price { font-size: 20px; font-weight: bold; color: #00A843; }
+          .footer { text-align: center; margin-top: 40px; font-size: 11px; color: #9999AA; }
+        </style>
+      </head>
+      <body>
+        <div class="invoice-box">
+          <div class="header">
+            <div class="logo">Kaam<span>Connect</span></div>
+            <div class="badge">BOOKING CONFIRMED</div>
+          </div>
+          
+          <table class="details-table">
+            <tr>
+              <td class="label">Booking ID</td>
+              <td class="value">${booking.booking_id || booking.bookingId || 'BK-TEMP'}</td>
+            </tr>
+            <tr>
+              <td class="label">Service</td>
+              <td class="value">🛠️ ${serviceName || 'Home Service'}</td>
+            </tr>
+            <tr>
+              <td class="label">Provider</td>
+              <td class="value">👤 ${provider.name || 'Specialist'}</td>
+            </tr>
+            <tr>
+              <td class="label">Phone</td>
+              <td class="value">📞 ${provider.phone || '0300-0000000'}</td>
+            </tr>
+            <tr>
+              <td class="label">Address / Area</td>
+              <td class="value">📍 ${booking.location || 'Karachi'}</td>
+            </tr>
+            <tr>
+              <td class="label">Scheduled Time</td>
+              <td class="value">📅 ${booking.scheduledDate || 'As scheduled'} at ${booking.scheduledTime || ''}</td>
+            </tr>
+            <tr>
+              <td class="label">Simulated Log</td>
+              <td class="value">🤖 Matched & Verified via AI Orchestrator</td>
+            </tr>
+          </table>
+          
+          <div class="total-box">
+            <div style="font-size: 12px; color: #555570; font-weight: bold; text-transform: uppercase;">Estimated Cost</div>
+            <div class="total-price">${booking.estimatedCost || 'PKR 1,500'}</div>
+          </div>
+          
+          <div class="footer">
+            Thank you for choosing KaamConnect AI-a-Service App!<br>
+            For support or changes, use the chat agent in-app.
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      addLog('System', 'Invoice PDF compiled successfully', 'expo-print', 'Success');
+      await Sharing.shareAsync(uri);
+      addLog('System', 'Sharing invoice dialog completed', 'expo-sharing', 'Success');
+    } catch (error) {
+      console.error('Failed to generate/share PDF:', error);
+      addLog('System', 'Invoice PDF generation error', 'expo-print', 'Failed');
+    }
   };
 
   // ── RENDER FUNCTIONS ──────────────────────────
@@ -497,6 +1052,160 @@ export default function ChatScreen({ navigation }) {
         </View>
       );
     }
+    if (msg.type === 'services_menu') {
+      const { provider, services } = msg.data;
+      return (
+        <View key={msg.id} style={s.rowBot}>
+          <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
+          <View style={s.bubbleBotWide}>
+            <Text style={s.inlineMenuTitle}>📋 {provider.name} Service Catalog</Text>
+            <Text style={s.inlineMenuSub}>Apna targeted service choose karein:</Text>
+            {services.map((svc, idx) => (
+              <TouchableOpacity
+                key={svc.id || idx}
+                style={s.inlineSvcCard}
+                onPress={() => selectService(svc)}
+              >
+                <View style={s.inlineSvcInfo}>
+                  <Text style={s.inlineSvcName}>⚡ {svc.name}</Text>
+                  <Text style={s.inlineSvcPrice}>PKR {svc.price.toLocaleString()}</Text>
+                </View>
+                <Text style={s.inlineSelectBtnText}>Select</Text>
+              </TouchableOpacity>
+            ))}
+            
+            {/* Not sure card */}
+            <TouchableOpacity
+              style={s.notSureCard}
+              onPress={() => handleNotSure(provider, pendingData?.intent)}
+            >
+              <Text style={s.notSureEmoji}>🤔</Text>
+              <View style={s.notSureText}>
+                <Text style={s.notSureTitle}>Nahi pata kya chahiye?</Text>
+                <Text style={s.notSureSub}>Hamare AI se poochhein</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+    if (msg.type === 'service_suggestion') {
+      const { service, provider } = msg.data;
+      return (
+        <View key={msg.id} style={s.rowBot}>
+          <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
+          <View style={s.bubbleBotWide}>
+            <Text style={s.inlineMenuTitle}>💡 Recommended Service</Text>
+            <TouchableOpacity
+              style={s.inlineSvcCard}
+              onPress={() => {
+                setSelectedProvider(provider);
+                selectService(service);
+              }}
+            >
+              <View style={s.inlineSvcInfo}>
+                <Text style={s.inlineSvcName}>⚡ {service?.name || 'Suggested Service'}</Text>
+                <Text style={s.inlineSvcPrice}>PKR {(service?.price || 1500).toLocaleString()}</Text>
+              </View>
+              <Text style={s.inlineSelectBtnText}>Book Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+    if (msg.type === 'time_slots') {
+      const slots = msg.data;
+      return (
+        <View key={msg.id} style={s.rowBot}>
+          <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
+          <View style={s.bubbleBotWide}>
+            <Text style={s.inlineMenuTitle}>⏰ Date & Time Preference</Text>
+            <Text style={s.inlineMenuSub}>Apna preferred arrival slot choose karein:</Text>
+            <View style={s.slotGrid}>
+              {slots.map((slot, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={s.slotItem}
+                  onPress={() => selectTimeSlot(slot)}
+                >
+                  <Text style={s.slotText}>{slot.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      );
+    }
+    if (msg.type === 'booking_confirmed') {
+      const { booking, provider, serviceName } = msg.data;
+      return (
+        <View key={msg.id} style={s.rowBot}>
+          <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
+          <View style={s.bubbleBotWide}>
+            <View style={s.receiptCard}>
+              <View style={s.receiptHeader}>
+                <Text style={s.receiptTitle}>🎉 BOOKING CONFIRMED</Text>
+                <Text style={s.receiptId}>ID: {booking.booking_id}</Text>
+              </View>
+              
+              <View style={s.receiptRow}>
+                <Text style={s.receiptLabel}>Service:</Text>
+                <Text style={s.receiptVal}>🛠️ {serviceName}</Text>
+              </View>
+              <View style={s.receiptRow}>
+                <Text style={s.receiptLabel}>Professional:</Text>
+                <Text style={s.receiptVal}>👤 {booking.provider}</Text>
+              </View>
+              <View style={s.receiptRow}>
+                <Text style={s.receiptLabel}>Address:</Text>
+                <Text style={s.receiptVal} numberOfLines={2}>📍 {booking.location}</Text>
+              </View>
+              <View style={s.receiptRow}>
+                <Text style={s.receiptLabel}>Scheduled:</Text>
+                <Text style={s.receiptVal}>📅 {booking.scheduledDate} ({booking.scheduledTime})</Text>
+              </View>
+              <View style={s.receiptRow}>
+                <Text style={s.receiptLabel}>Cost Est:</Text>
+                <Text style={s.receiptValHighlight}>{booking.estimatedCost}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={s.pdfButton}
+                activeOpacity={0.8}
+                onPress={() => downloadReceiptPDF(booking, provider, serviceName)}
+              >
+                <Text style={s.pdfButtonText}>🧾 Share PDF Invoice Receipt</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    }
+    if (msg.type === 'follow_up_interaction') {
+      const { booking } = msg.data;
+      return (
+        <View key={msg.id} style={s.rowBot}>
+          <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
+          <View style={s.bubbleBotWide}>
+            <Text style={s.inlineMenuTitle}>💡 Confirm Job Status</Text>
+            <View style={s.followUpRow}>
+              <TouchableOpacity
+                style={[s.followUpBtn, { backgroundColor: '#00C853' }]}
+                onPress={() => handleJobDone(currentBookingId || booking?.booking_id)}
+              >
+                <Text style={s.followUpBtnText}>Yes, Job is Done ✅</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.followUpBtn, { backgroundColor: '#FF3D00' }]}
+                onPress={() => handleIssueRaised(currentBookingId || booking?.booking_id)}
+              >
+                <Text style={s.followUpBtnText}>No, Issue Raised ⚠️</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    }
     if (msg.type === 'booking') {
       return (
         <View key={msg.id} style={s.rowBot}>
@@ -553,66 +1262,84 @@ export default function ChatScreen({ navigation }) {
               <Text style={s.locTextDenied}> Enable GPS</Text>
             </TouchableOpacity>
           ) : null}
-          {(stage === 'providers_shown' || stage === 'confirmed') ? (
+          {(stage === 'providers_shown' || stage === 'confirmed' || stage === 'services_shown') ? (
             <TouchableOpacity style={s.newChatBtn} onPress={stage === 'confirmed' ? () => {
               setMessages([GREETING]);
               setStage('idle');
               setPendingData(null);
+              setSelectedProvider(null);
+              setSelectedService(null);
             } : resetConversation}>
               <Ionicons name="add-circle-outline" size={16} color={C.primary} />
               <Text style={s.traceBtnText}>{stage === 'confirmed' ? ' New Chat' : ' New Request'}</Text>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity style={s.devBtn} onPress={() => navigation.navigate('AgentTrace')}>
-            <Text style={s.devBtnText}>🤖 Dev</Text>
+            <Text style={s.devBtnText}>🤖 Trace Logs</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* QUICK PROMPTS */}
-      {messages.length <= 1 ? (
-        <View style={s.quickWrap}>
-          <Text style={s.quickLabel}>✨ Jaldi try karein:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.quickScroll}>
-            {QUICK.map((p, i) => (
-              <TouchableOpacity key={i} style={s.quickChip} onPress={() => sendMessage(p)}>
-                <Text style={s.quickChipText}>{p}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
+      <View style={s.mainBodyRow}>
+        {/* CHAT AREA */}
+        <View style={s.chatContainer}>
+          {/* QUICK PROMPTS */}
+          {messages.length <= 1 ? (
+            <View style={s.quickWrap}>
+              <Text style={s.quickLabel}>✨ Jaldi try karein:</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.quickScroll}>
+                {QUICK.map((p, i) => (
+                  <TouchableOpacity key={i} style={s.quickChip} onPress={() => sendMessage(p)}>
+                    <Text style={s.quickChipText}>{p}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
 
-      {/* MESSAGES */}
-      <ScrollView
-        ref={scrollRef} style={s.msgArea} contentContainerStyle={s.msgContent}
-        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-      >
-        {messages.map(renderMessage)}
-      </ScrollView>
-
-      {/* INPUT */}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={s.inputBar}>
-          <TextInput
-            style={s.input} value={input} onChangeText={setInput}
-            placeholder={stage === 'providers_shown' ? 'Number batain (1, 2, ya 3)...' : 'Apni zaroorat batain...'}
-            placeholderTextColor={C.textMuted} multiline maxLength={500}
-            onSubmitEditing={() => sendMessage()}
-          />
-          <TouchableOpacity
-            style={[s.sendBtn, (!input.trim() || loading) ? s.sendBtnOff : null]}
-            onPress={() => sendMessage()}
-            disabled={!input.trim() || loading}
+          {/* MESSAGES */}
+          <ScrollView
+            ref={scrollRef} style={s.msgArea} contentContainerStyle={s.msgContent}
+            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+            automaticallyAdjustKeyboardInsets={true}
           >
-            <Ionicons name="send" size={18} color={loading ? C.textMuted : '#fff'} />
-          </TouchableOpacity>
+            {messages.map(renderMessage)}
+          </ScrollView>
+
+          {/* INPUT */}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            style={{ backgroundColor: '#FFFFFF' }}
+          >
+            <View style={s.inputBar}>
+              <TextInput
+                style={s.input} value={input} onChangeText={setInput}
+                placeholder={stage === 'providers_shown' ? 'Number batain (1, 2, ya 3)...' : 'Apni zaroorat batain...'}
+                placeholderTextColor={C.textMuted} multiline maxLength={500}
+                onSubmitEditing={() => sendMessage()}
+                onFocus={() => {
+                  setTimeout(() => {
+                    scrollRef.current?.scrollToEnd({ animated: true });
+                  }, 300);
+                }}
+              />
+              <TouchableOpacity
+                style={[s.sendBtn, (!input.trim() || loading) ? s.sendBtnOff : null]}
+                onPress={() => sendMessage()}
+                disabled={!input.trim() || loading}
+              >
+                <Ionicons name="send" size={18} color={loading ? C.textMuted : '#fff'} />
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
 
+// ── STYLES ──────────────────────────────────────
 // ── STYLES ──────────────────────────────────────
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
@@ -657,6 +1384,48 @@ const s = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12,
   },
   devBtnText: { color: '#2196F3', fontSize: 11, fontWeight: '700' },
+  
+  mainBodyRow: { flex: 1, flexDirection: 'row' },
+  chatContainer: { flex: 2, height: '100%' },
+  
+  // LOGS DRAWER STYLING
+  logsDrawer: {
+    flex: 1,
+    maxWidth: 320,
+    backgroundColor: '#1E1E2F',
+    borderLeftWidth: 1.5,
+    borderLeftColor: '#2D2D44',
+    height: '100%',
+    padding: 12,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2D2D44',
+    paddingBottom: 8,
+    marginBottom: 8,
+  },
+  drawerTitle: { color: '#00C853', fontSize: 14, fontWeight: '800' },
+  logsScroll: { flex: 1 },
+  logsContent: { paddingVertical: 4 },
+  logItemRow: {
+    backgroundColor: '#252538',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#00C853',
+  },
+  logTimeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  logTimeText: { color: '#8888AA', fontSize: 10, fontFamily: 'Courier' },
+  logAgentText: { color: '#80DEEA', fontSize: 10, fontWeight: '700' },
+  logActionText: { color: '#FFFFFF', fontSize: 12, lineHeight: 16, marginVertical: 4 },
+  logMetaRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  logMetaLabel: { color: '#8888AA', fontSize: 9 },
+  logMetaVal: { color: '#FFFFFF', fontWeight: '600' },
+
   quickWrap: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 4 },
   quickLabel: { color: C.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase' },
   quickScroll: { flexDirection: 'row' },
@@ -739,4 +1508,109 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   sendBtnOff: { backgroundColor: '#F8F9FC' },
+
+  // INLINE SERVICE SELECTOR MENU
+  inlineMenuTitle: { color: '#1A1A2E', fontSize: 15, fontWeight: '800', marginBottom: 4 },
+  inlineMenuSub: { color: C.textSec, fontSize: 12, marginBottom: 12 },
+  inlineSvcCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4E5EF',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+  },
+  inlineSvcInfo: { flex: 1, marginRight: 8 },
+  inlineSvcName: { color: '#1A1A2E', fontSize: 13, fontWeight: '700' },
+  inlineSvcPrice: { color: '#00C853', fontSize: 12, fontWeight: '800', marginTop: 2 },
+  inlineSelectBtnText: { color: C.primary, fontWeight: '700', fontSize: 12 },
+
+  // INLINE TIME SLOTS SELECTOR
+  slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  slotItem: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4E5EF',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    minWidth: '47%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  slotText: { color: '#1A1A2E', fontSize: 11, fontWeight: '600', textAlign: 'center' },
+
+  // VERIFIED PREMIUM DIGITAL RECEIPT
+  receiptCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#00C853',
+    padding: 12,
+    marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  receiptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#F0F0F8',
+    paddingBottom: 8,
+    marginBottom: 10,
+  },
+  receiptTitle: { color: '#00C853', fontSize: 13, fontWeight: '800' },
+  receiptId: { color: '#8888AA', fontSize: 10, fontFamily: 'Courier' },
+  receiptRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginVertical: 4,
+  },
+  receiptLabel: { color: '#555570', fontSize: 12, fontWeight: '600', width: '35%' },
+  receiptVal: { color: '#1A1A2E', fontSize: 12, fontWeight: '600', flex: 1, textAlign: 'right' },
+  receiptValHighlight: { color: '#00C853', fontSize: 13, fontWeight: '800', flex: 1, textAlign: 'right' },
+  pdfButton: {
+    backgroundColor: '#00C853',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  pdfButtonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 13 },
+
+  // AUTOMATED FOLLOW UP TIMERS VIEW
+  followUpRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginTop: 8 },
+  followUpBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  followUpBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+
+  notSureCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FFF4',
+    borderWidth: 1,
+    borderColor: '#A3E635',
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 8,
+  },
+  notSureEmoji: { fontSize: 20, marginRight: 10 },
+  notSureText: { flex: 1 },
+  notSureTitle: { color: '#1A1A2E', fontSize: 13, fontWeight: '700' },
+  notSureSub: { color: '#555570', fontSize: 11, marginTop: 1 },
 });

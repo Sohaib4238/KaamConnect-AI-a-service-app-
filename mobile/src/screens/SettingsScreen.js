@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
-  Alert, 
-  ScrollView, 
-  Platform 
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  Platform
 } from 'react-native';
 import { getDefaultApiUrl } from '../config/api';
 
@@ -46,7 +46,7 @@ export default function SettingsScreen({ apiUrl, setApiUrl }) {
         </Text>
 
         <Text style={styles.label}>Backend Base Endpoint URL</Text>
-        <TextInput 
+        <TextInput
           style={styles.input}
           value={inputUrl}
           onChangeText={setInputUrl}
@@ -73,16 +73,16 @@ export default function SettingsScreen({ apiUrl, setApiUrl }) {
         <Text style={styles.cardDesc}>Tap to load common simulator bindings:</Text>
 
         <View style={styles.presetRow}>
-          <TouchableOpacity 
-            style={styles.presetChip} 
+          <TouchableOpacity
+            style={styles.presetChip}
             onPress={() => applyPreset('http://localhost:3000')}
           >
             <Text style={styles.presetLabel}>iOS Sim / Web</Text>
             <Text style={styles.presetVal}>localhost:3000</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={styles.presetChip} 
+          <TouchableOpacity
+            style={styles.presetChip}
             onPress={() => applyPreset('http://10.0.2.2:3000')}
           >
             <Text style={styles.presetLabel}>Android Emulator</Text>

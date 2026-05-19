@@ -280,7 +280,7 @@ export default function ProvidersListScreen({ route, navigation }) {
                   {/* Stats Row */}
                   <View style={s.provStats}>
                     <Text style={s.provStat}>
-                      ⭐ {(item.simulated_state?.rating || 4.0).toFixed(1)}
+                      ⭐ {Number(item.simulated_state?.rating || 4.0).toFixed(1)}
                     </Text>
                     <Text style={s.statDot}>·</Text>
                     <Text style={s.provStat}>

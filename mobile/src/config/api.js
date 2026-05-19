@@ -2,8 +2,8 @@ import axios from 'axios';
 
 // For Expo Go on physical device — use your machine's local IP
 // For emulator — use 10.0.2.2:3000
-const DEFAULT_URL = 'http://192.168.1.40:3000';
-let BASE_URL = DEFAULT_URL;
+const DEFAULT_URL = 'http://192.168.43.223:3000';
+export let BASE_URL = DEFAULT_URL;
 
 export const getDefaultApiUrl = () => DEFAULT_URL;
 

@@ -58,13 +58,13 @@ function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ 
-        flex: 1, justifyContent: 'center', 
-        alignItems: 'center', backgroundColor: '#FFFFFF' 
+      <View style={{
+        flex: 1, justifyContent: 'center',
+        alignItems: 'center', backgroundColor: '#FFFFFF'
       }}>
         <ActivityIndicator size="large" color="#00C853" />
-        <Text style={{ 
-          marginTop: 16, color: '#9999AA', fontSize: 14 
+        <Text style={{
+          marginTop: 16, color: '#9999AA', fontSize: 14
         }}>Loading...</Text>
       </View>
     );

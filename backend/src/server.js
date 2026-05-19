@@ -150,6 +150,25 @@ app.post('/api/bookings/:bookingId/complete', async (req, res) => {
   }
 });
 
+// ── Raise Booking Issue ──
+app.post('/api/bookings/:bookingId/issue', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const docRef = db.collection('bookings').doc(bookingId);
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ success: false, error: 'Booking not found' });
+    }
+    await docRef.update({
+      status: 'issue_raised',
+      issue_raised_at: new Date().toISOString()
+    });
+    res.json({ success: true, message: 'Booking issue raised successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Verification route for Vertex AI Intent Agent
 app.post('/api/test-intent', async (req, res) => {
   try {
@@ -267,9 +286,11 @@ app.post('/api/book', async (req, res) => {
 
     const booking = {
       booking_id: bookingId, user_id: user_id || 'mobile-user',
-      provider_id: provider.provider_id, provider_name: provider.name,
-      service_type: intent.service_type, location: intent.location,
-      slot, status: 'confirmed', issue_description: intent.issue_description,
+      provider_id: provider.provider_id || provider.id || 'unknown_provider',
+      provider_name: provider.name || 'Specialist',
+      service_type: intent.service_type || 'AC_REPAIR',
+      location: intent.location || 'Karachi',
+      slot, status: 'confirmed', issue_description: intent.issue_description || '',
       created_at: new Date().toISOString(), trace_id: traceId,
       price_estimate: provider.price_range || provider.simulated_state?.price_range_pkr || { min: 1500, max: 3000 },
     };
@@ -288,6 +309,39 @@ app.post('/api/book', async (req, res) => {
     res.json({ status: 'booking_confirmed', booking, follow_up, trace_id: traceId });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/suggest-service', async (req, res) => {
+  try {
+    const { problem, provider_services, service_type } = req.body;
+    const { askGeminiJSON } = await import('./config/gemini.js');
+    
+    const prompt = `User problem: "${problem}"
+Available services: ${JSON.stringify(provider_services?.slice(0,8))}
+Service category: ${service_type}
+
+Based on the problem description, suggest the most 
+relevant service from the available services list.
+Return JSON:
+{
+  "suggested_service": "service name",
+  "service_object": { the matching service object },
+  "reasoning": "brief explanation in Urdu/English why this service"
+}`;
+    
+    const result = await askGeminiJSON(prompt);
+    if (result.success) {
+      res.json(result.data);
+    } else {
+      res.json({ 
+        suggested_service: provider_services?.[0]?.name || 'General Service',
+        service_object: provider_services?.[0] || {},
+        reasoning: 'Most common service for your category'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

@@ -31,7 +31,7 @@ const SERVICE_CATEGORIES = [
     backgroundColor: '#E8F5E9',  // light green
     borderColor: C.primary,
     available: true,
-    categories: ['AC_REPAIR', 'ELECTRICIAN', 'PLUMBER', 'CARPENTER', 'PAINTER', 'CLEANER', 'GARDENER']
+    categories: ['AC_REPAIR', 'ELECTRICIAN', 'PLUMBER', 'CARPENTER', 'PAINTER', 'CLEANER', 'GARDENER', 'BEAUTICIAN', 'TUTOR']
   },
   {
     id: 'cleaning',

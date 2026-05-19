@@ -131,6 +131,22 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const incrementBookingCount = async () => {
+    if (!user) return;
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      const newCount = (userProfile?.booking_count || 0) + 1;
+      await setDoc(docRef, { 
+        booking_count: newCount, 
+        updated_at: serverTimestamp() 
+      }, { merge: true });
+      setUserProfile(prev => ({ ...prev, booking_count: newCount }));
+    } catch (error) {
+      console.error('[Auth] Increment booking count error:', error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -142,6 +158,7 @@ export function AuthProvider({ children }) {
       logout,
       updateUserProfile,
       loadUserProfile,
+      incrementBookingCount,
     }}>
       {children}
     </AuthContext.Provider>

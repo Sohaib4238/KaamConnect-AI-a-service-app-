@@ -33,10 +33,10 @@ export default function ProfileScreen({ navigation }) {
       'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
+        {
+          text: 'Sign Out',
           style: 'destructive',
-          onPress: logout 
+          onPress: logout
         }
       ]
     );
@@ -51,7 +51,7 @@ export default function ProfileScreen({ navigation }) {
     <SafeAreaView style={s.container} edges={['top']}>
       {/* Header */}
       <View style={s.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={s.backBtn}
           onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#1A1A2E" />
@@ -145,9 +145,9 @@ export default function ProfileScreen({ navigation }) {
             <View style={s.statDivider} />
             <View style={s.stat}>
               <Text style={s.statVal}>
-                {user?.metadata?.creationTime 
+                {user?.metadata?.creationTime
                   ? new Date(user.metadata.creationTime)
-                    .toLocaleDateString('en-PK', {month: 'short', year: 'numeric'})
+                    .toLocaleDateString('en-PK', { month: 'short', year: 'numeric' })
                   : 'N/A'}
               </Text>
               <Text style={s.statLabel}>Member Since</Text>
@@ -156,14 +156,14 @@ export default function ProfileScreen({ navigation }) {
         </View>
 
         {/* Sign out */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={s.logoutBtn}
           onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#F44336" />
           <Text style={s.logoutText}>Sign Out</Text>
         </TouchableOpacity>
 
-        <View style={{height: 40}} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -186,7 +186,7 @@ const s = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#1A1A2E' },
   editBtn: { fontSize: 15, color: '#00C853', fontWeight: '700' },
   scroll: { flex: 1 },
-  avatarSection: { 
+  avatarSection: {
     alignItems: 'center', paddingVertical: 28,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1, borderBottomColor: '#E4E5EF',
@@ -211,9 +211,9 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   fieldLabel: { fontSize: 12, color: '#9999AA', marginBottom: 4 },
-  fieldValue: { 
-    fontSize: 15, color: '#1A1A2E', 
-    fontWeight: '600', paddingVertical: 4 
+  fieldValue: {
+    fontSize: 15, color: '#1A1A2E',
+    fontWeight: '600', paddingVertical: 4
   },
   fieldInput: {
     fontSize: 15, color: '#1A1A2E',
@@ -233,8 +233,8 @@ const s = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center' },
   statVal: { fontSize: 22, fontWeight: '800', color: '#1A1A2E' },
   statLabel: { fontSize: 12, color: '#9999AA', marginTop: 4 },
-  statDivider: { 
-    width: 1, height: 40, backgroundColor: '#E4E5EF' 
+  statDivider: {
+    width: 1, height: 40, backgroundColor: '#E4E5EF'
   },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center',
@@ -244,7 +244,7 @@ const s = StyleSheet.create({
     borderRadius: 14, paddingVertical: 16,
     gap: 8,
   },
-  logoutText: { 
-    color: '#F44336', fontSize: 16, fontWeight: '700' 
+  logoutText: {
+    color: '#F44336', fontSize: 16, fontWeight: '700'
   },
 });

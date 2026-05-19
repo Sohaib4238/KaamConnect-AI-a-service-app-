@@ -24,7 +24,7 @@ const C = {
 
 export default function CheckoutScreen({ route, navigation }) {
   const { cart = [], provider = {} } = route.params || {};
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, incrementBookingCount } = useAuth();
 
   const [userDetails, setUserDetails] = useState({
     name: '', phone: '', address: '', address_label: 'Home'
@@ -155,6 +155,7 @@ export default function CheckoutScreen({ route, navigation }) {
       });
       
       if (result.status === 'booking_confirmed') {
+        incrementBookingCount().catch(console.error);
         navigation.replace('BookingSuccessScreen', { 
           booking: {
             ...result.booking,
