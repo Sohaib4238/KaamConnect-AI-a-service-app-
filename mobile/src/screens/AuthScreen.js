@@ -81,8 +81,8 @@ export default function AuthScreen() {
       let message = error.message;
       if (error.code === 'auth/email-already-in-use') {
         message = 'This email is already registered. Please sign in.';
-      } else if (error.code === 'auth/wrong-password' || 
-                 error.code === 'auth/invalid-credential') {
+      } else if (error.code === 'auth/wrong-password' ||
+        error.code === 'auth/invalid-credential') {
         message = 'Incorrect email or password.';
       } else if (error.code === 'auth/user-not-found') {
         message = 'No account found with this email.';
@@ -97,20 +97,20 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}>
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
-          
+
           {/* Logo */}
           <View style={s.logoWrap}>
             <View style={s.logoCircle}>
               <Text style={s.logoEmoji}>🔧</Text>
             </View>
-            <Text style={s.logoTitle}>Expertly</Text>
+            <Text style={s.logoTitle}>KaamConnect</Text>
             <Text style={s.logoSub}>Professional services at your doorstep</Text>
           </View>
 
@@ -120,7 +120,7 @@ export default function AuthScreen() {
               style={[s.toggleBtn, mode === 'signin' && s.toggleBtnActive]}
               onPress={() => setMode('signin')}>
               <Text style={[
-                s.toggleText, 
+                s.toggleText,
                 mode === 'signin' && s.toggleTextActive
               ]}>Sign In</Text>
             </TouchableOpacity>
@@ -197,11 +197,11 @@ export default function AuthScreen() {
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={s.eyeBtn}>
-                <Ionicons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={18} color="#9999AA" />
               </TouchableOpacity>
             </View>
@@ -265,8 +265,8 @@ export default function AuthScreen() {
               style={s.switchBtn}
               onPress={() => setMode(mode === 'signin' ? 'signup' : 'signin')}>
               <Text style={s.switchText}>
-                {mode === 'signin' 
-                  ? "Don't have an account? " 
+                {mode === 'signin'
+                  ? "Don't have an account? "
                   : "Already have an account? "}
                 <Text style={s.switchLink}>
                   {mode === 'signin' ? 'Sign Up' : 'Sign In'}
@@ -291,9 +291,9 @@ const s = StyleSheet.create({
     marginBottom: 16,
   },
   logoEmoji: { fontSize: 36 },
-  logoTitle: { 
-    fontSize: 28, fontWeight: '900', 
-    color: '#1A1A2E', marginBottom: 6 
+  logoTitle: {
+    fontSize: 28, fontWeight: '900',
+    color: '#1A1A2E', marginBottom: 6
   },
   logoSub: { fontSize: 14, color: '#9999AA', textAlign: 'center' },
   toggleRow: {
@@ -307,8 +307,8 @@ const s = StyleSheet.create({
     borderRadius: 11, alignItems: 'center',
   },
   toggleBtnActive: { backgroundColor: '#FFFFFF' },
-  toggleText: { 
-    fontSize: 14, fontWeight: '600', color: '#9999AA' 
+  toggleText: {
+    fontSize: 14, fontWeight: '600', color: '#9999AA'
   },
   toggleTextActive: { color: '#1A1A2E', fontWeight: '800' },
   form: { width: '100%' },
@@ -324,9 +324,9 @@ const s = StyleSheet.create({
     paddingVertical: 12,
   },
   inputIcon: { marginRight: 10 },
-  input: { 
-    flex: 1, fontSize: 15, 
-    color: '#1A1A2E', 
+  input: {
+    flex: 1, fontSize: 15,
+    color: '#1A1A2E',
   },
   eyeBtn: { padding: 4 },
   authBtn: {
@@ -335,18 +335,18 @@ const s = StyleSheet.create({
     alignItems: 'center', marginTop: 24,
   },
   authBtnDisabled: { opacity: 0.6 },
-  authBtnText: { 
-    color: '#FFFFFF', fontSize: 16, fontWeight: '800' 
+  authBtnText: {
+    color: '#FFFFFF', fontSize: 16, fontWeight: '800'
   },
   dividerRow: {
     flexDirection: 'row', alignItems: 'center',
     marginVertical: 20,
   },
-  dividerLine: { 
-    flex: 1, height: 1, backgroundColor: '#E4E5EF' 
+  dividerLine: {
+    flex: 1, height: 1, backgroundColor: '#E4E5EF'
   },
-  dividerText: { 
-    marginHorizontal: 12, color: '#9999AA', fontSize: 13 
+  dividerText: {
+    marginHorizontal: 12, color: '#9999AA', fontSize: 13
   },
   googleBtn: {
     flexDirection: 'row', alignItems: 'center',
@@ -359,8 +359,8 @@ const s = StyleSheet.create({
     fontSize: 18, fontWeight: '900',
     color: '#4285F4', marginRight: 10,
   },
-  googleBtnText: { 
-    fontSize: 15, fontWeight: '700', color: '#1A1A2E' 
+  googleBtnText: {
+    fontSize: 15, fontWeight: '700', color: '#1A1A2E'
   },
   switchBtn: { alignItems: 'center', marginTop: 24 },
   switchText: { fontSize: 14, color: '#9999AA' },

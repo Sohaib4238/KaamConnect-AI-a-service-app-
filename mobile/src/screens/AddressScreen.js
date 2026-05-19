@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import { useAuth } from '../context/AuthContext';
 import * as Location from 'expo-location';
 
 const C = {
@@ -16,6 +17,7 @@ const C = {
 const LABELS = ['Home', 'Office', 'Parents', 'Other'];
 
 export default function AddressScreen({ navigation, route }) {
+  const { updateUserProfile } = useAuth();
   const [addresses, setAddresses] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAddress, setNewAddress] = useState({
@@ -203,6 +205,11 @@ export default function AddressScreen({ navigation, route }) {
       }
       await AsyncStorage.setItem('userArea', area);
     }
+    try {
+      await updateUserProfile({ selected_address: addr });
+    } catch (err) {
+      console.error('Failed to sync selected address to Firestore:', err);
+    }
     if (route.params?.returnToChat) {
       navigation.navigate('Chat', {
         screen: 'ChatMain',
@@ -229,6 +236,14 @@ export default function AddressScreen({ navigation, route }) {
     const updated = [...addresses, addr];
     setAddresses(updated);
     await AsyncStorage.setItem('saved_addresses', JSON.stringify(updated));
+    try {
+      await updateUserProfile({ 
+        saved_addresses: updated,
+        selected_address: addr
+      });
+    } catch (err) {
+      console.error('Failed to sync saved address to Firestore:', err);
+    }
     
     // Automatically select the newly created address
     setSelectedAddressId(addr.id);
@@ -267,6 +282,18 @@ export default function AddressScreen({ navigation, route }) {
     const updated = addresses.filter(addr => addr.id !== id);
     setAddresses(updated);
     await AsyncStorage.setItem('saved_addresses', JSON.stringify(updated));
+    try {
+      if (selectedAddressId === id) {
+        await updateUserProfile({ 
+          saved_addresses: updated,
+          selected_address: null 
+        });
+      } else {
+        await updateUserProfile({ saved_addresses: updated });
+      }
+    } catch (err) {
+      console.error('Failed to sync deleted address to Firestore:', err);
+    }
 
     if (selectedAddressId === id) {
       setSelectedAddressId(null);

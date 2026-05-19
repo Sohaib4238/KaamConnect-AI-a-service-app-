@@ -1,6 +1,21 @@
+# Dependency Directories
 node_modules/
+
+# Secrets and Env variables
 .env
-*.db
-*.sqlite
-logs/
+.env.*
 service-account.json
+
+# Local Databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+kaamconnect.db*
+
+# Logs and Caches
+*.log
+logs/
+.DS_Store

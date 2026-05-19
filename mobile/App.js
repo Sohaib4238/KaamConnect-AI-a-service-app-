@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar, View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -19,6 +19,9 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import AuthScreen from './src/screens/AuthScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import OnboardingAddressScreen from './src/screens/OnboardingAddressScreen';
+import SplashScreen from './src/screens/SplashScreen';
+import WelcomeScreen from './src/screens/WelcomeScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Tab = createBottomTabNavigator();
 const ChatStack = createStackNavigator();
@@ -56,28 +59,55 @@ const TAB_ICONS = {
 
 function AppNavigator() {
   const { user, loading, hasAddress } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
 
+  useEffect(() => {
+    AsyncStorage.getItem('has_seen_welcome').then(val => {
+      if (!val) setShowWelcome(true);
+    });
+  }, []);
+
+  // 1. Show splash screen first always
+  if (showSplash) {
+    return (
+      <SplashScreen
+        onComplete={() => setShowSplash(false)}
+      />
+    );
+  }
+
+  // 2. Show welcome screen for first time users (only if not logged in yet)
+  if (showWelcome && !user) {
+    return (
+      <WelcomeScreen
+        onGetStarted={async () => {
+          await AsyncStorage.setItem('has_seen_welcome', 'true');
+          setShowWelcome(false);
+        }}
+      />
+    );
+  }
+
+  // 3. Loading state (No buffering wheel indicator)
   if (loading) {
     return (
       <View style={{
         flex: 1, justifyContent: 'center',
         alignItems: 'center', backgroundColor: '#FFFFFF'
       }}>
-        <ActivityIndicator size="large" color="#00C853" />
         <Text style={{
-          marginTop: 16, color: '#9999AA', fontSize: 14
+          marginTop: 16, color: '#9999AA', fontSize: 14, fontWeight: '600'
         }}>Loading...</Text>
       </View>
     );
   }
 
-  if (!user) {
-    return <AuthScreen />;
-  }
+  // 4. Not logged in — show auth
+  if (!user) return <AuthScreen />;
 
-  if (!hasAddress) {
-    return <OnboardingAddressScreen />;
-  }
+  // 5. Logged in but no address — show onboarding
+  if (!hasAddress) return <OnboardingAddressScreen />;
 
   return (
     <NavigationContainer>
