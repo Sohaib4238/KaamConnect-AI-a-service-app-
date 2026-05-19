@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { discoverProviders, bookProvider, getProviderDetails, BASE_URL } from '../config/api';
+import { discoverProviders, bookProvider, getProviderDetails, getProviderSlots, BASE_URL } from '../config/api';
 import { useAuth } from '../context/AuthContext';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -93,6 +93,7 @@ export default function ChatScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   // Staged conversation state
   const [stage, setStage] = useState('idle'); // idle | providers_shown | services_shown | awaiting_time | confirmed
+  const [startPrompt, setStartPrompt] = useState('');
   const [pendingData, setPendingData] = useState(null); // { intent, ranking, trace_id, originalPrompt }
   // GPS location state
   const [userLocation, setUserLocation] = useState(null);
@@ -199,6 +200,7 @@ export default function ChatScreen({ navigation, route }) {
           title,
           messages,
           stage,
+          startPrompt,
           pendingData,
           selectedProvider,
           selectedService,
@@ -216,7 +218,7 @@ export default function ChatScreen({ navigation, route }) {
       setSessions(updatedSessions);
       AsyncStorage.setItem('kaamconnect_chat_sessions', JSON.stringify(updatedSessions));
     }
-  }, [messages, stage, pendingData, selectedProvider, selectedService, clickedMessageIds, selectedServicesMap, ratingsMap]);
+  }, [messages, stage, startPrompt, pendingData, selectedProvider, selectedService, clickedMessageIds, selectedServicesMap, ratingsMap]);
 
   const startNewChat = async () => {
     const newId = uid();
@@ -225,6 +227,7 @@ export default function ChatScreen({ navigation, route }) {
       title: 'Naya Chat',
       messages: [GREETING],
       stage: 'idle',
+      startPrompt: '',
       pendingData: null,
       selectedProvider: null,
       selectedService: null,
@@ -238,6 +241,7 @@ export default function ChatScreen({ navigation, route }) {
     setCurrentSessionId(newId);
     setMessages([GREETING]);
     setStage('idle');
+    setStartPrompt('');
     setPendingData(null);
     setSelectedProvider(null);
     setSelectedService(null);
@@ -255,6 +259,7 @@ export default function ChatScreen({ navigation, route }) {
     }));
     setMessages(loadedMsgs);
     setStage(session.stage || 'idle');
+    setStartPrompt(session.startPrompt || '');
     setPendingData(session.pendingData || null);
     setSelectedProvider(session.selectedProvider || null);
     setSelectedService(session.selectedService || null);
@@ -273,6 +278,7 @@ export default function ChatScreen({ navigation, route }) {
         title: 'Naya Chat',
         messages: [GREETING],
         stage: 'idle',
+        startPrompt: '',
         pendingData: null,
         selectedProvider: null,
         selectedService: null,
@@ -285,6 +291,7 @@ export default function ChatScreen({ navigation, route }) {
       setCurrentSessionId(newId);
       setMessages([GREETING]);
       setStage('idle');
+      setStartPrompt('');
       setPendingData(null);
       setSelectedProvider(null);
       setSelectedService(null);
@@ -303,6 +310,7 @@ export default function ChatScreen({ navigation, route }) {
         }));
         setMessages(loadedMsgs);
         setStage(first.stage || 'idle');
+        setStartPrompt(first.startPrompt || '');
         setPendingData(first.pendingData || null);
         setSelectedProvider(first.selectedProvider || null);
         setSelectedService(first.selectedService || null);
@@ -514,34 +522,122 @@ export default function ChatScreen({ navigation, route }) {
     return () => intervals.forEach(clearTimeout);
   };
 
+  const parseExactTime = (text) => {
+    if (!text) return null;
+    const t = text.toLowerCase();
+    
+    // Regex to match:
+    // - Hour and optional minutes, followed by baje, bjy, bja, bje, am, pm, o'clock, etc. (e.g. "7 bjy", "11:30", "2 pm")
+    // - Matches stand-alone hour like "11" or "7" when explicitly accompanied by unit indicators or time suffixes
+    const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm|baje|bjy|bja|bje|o'clock|hr|hours)?/gi;
+    
+    let match;
+    let foundHour = null;
+    let foundMin = 0;
+    let isPm = false;
+    let hasExplicitAmPm = false;
+
+    while ((match = timeRegex.exec(t)) !== null) {
+      const val = parseInt(match[1]);
+      const suffix = match[3] ? match[3].toLowerCase() : '';
+      
+      // We match if we have a direct suffix (like bjy, am, pm, etc.) or if there are minutes specified (like 11:30)
+      if (suffix || match[2]) {
+        foundHour = val;
+        if (match[2]) {
+          foundMin = parseInt(match[2]);
+        }
+        if (suffix === 'pm') {
+          isPm = true;
+          hasExplicitAmPm = true;
+        } else if (suffix === 'am') {
+          isPm = false;
+          hasExplicitAmPm = true;
+        }
+        break; // Stop at first match
+      }
+    }
+
+    if (foundHour === null) {
+      return null;
+    }
+
+    // Heuristics for resolving PM or AM based on context
+    if (!hasExplicitAmPm) {
+      if (t.includes('sham') || t.includes('shaam') || t.includes('shm') || t.includes('evening') ||
+          t.includes('raat') || t.includes('rat') || t.includes('night') || t.includes('rt') ||
+          t.includes('dopahar') || t.includes('dophar') || t.includes('dphr') || t.includes('afternoon') || t.includes('noon')) {
+        if (foundHour < 12) {
+          isPm = true;
+        }
+      } else if (t.includes('subha') || t.includes('subah') || t.includes('morning') || t.includes('sbh')) {
+        isPm = false;
+      } else {
+        // Fallback default
+        if (foundHour >= 1 && foundHour <= 7) {
+          isPm = true;
+        } else if (foundHour >= 8 && foundHour <= 11) {
+          isPm = false;
+        }
+      }
+    }
+
+    const ampmStr = isPm ? 'PM' : 'AM';
+    return {
+      displayTime: `${foundHour.toString().padStart(2, '0')}:${foundMin.toString().padStart(2, '0')} ${ampmStr}`,
+      hour: foundHour,
+      minute: foundMin,
+      isPm: isPm
+    };
+  };
+
   // Helper for date/time parsing (Urdu & English)
   const parseTimeSlot = (pref) => {
+    if (pref && pref.includes('T') && !isNaN(Date.parse(pref))) {
+      const dateObj = new Date(pref);
+      const dateFormatted = dateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric'
+      });
+      const timeStr = dateObj.toLocaleTimeString('en-PK', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Karachi'
+      });
+      return {
+        date: dateFormatted,
+        displayTime: timeStr,
+        isoDate: pref.split('T')[0]
+      };
+    }
+
     const t = pref.toLowerCase();
     const today = new Date();
     
-    let day = 'today';
     let dateObj = today;
     if (t.includes('tomorrow') || t.includes('kal')) {
-      day = 'tomorrow';
       dateObj = new Date();
       dateObj.setDate(today.getDate() + 1);
     } else if (t.includes('parson') || t.includes('day after')) {
-      day = 'day_after';
       dateObj = new Date();
       dateObj.setDate(today.getDate() + 2);
     }
 
-    let slot = 'morning';
+    // Try to parse exact time first!
+    const exactTime = parseExactTime(pref);
     let timeStr = '10:00 AM';
-    if (t.includes('evening') || t.includes('shaam')) {
-      slot = 'evening';
-      timeStr = '05:00 PM';
-    } else if (t.includes('afternoon') || t.includes('dopahar')) {
-      slot = 'afternoon';
-      timeStr = '02:00 PM';
-    } else if (t.includes('night') || t.includes('raat')) {
-      slot = 'evening';
-      timeStr = '08:00 PM';
+    if (exactTime) {
+      timeStr = exactTime.displayTime;
+    } else {
+      if (t.includes('evening') || t.includes('shaam') || t.includes('sham') || t.includes('shm')) {
+        timeStr = '05:00 PM';
+      } else if (t.includes('afternoon') || t.includes('dopahar') || t.includes('dophar') || t.includes('dphr')) {
+        timeStr = '02:00 PM';
+      } else if (t.includes('raat') || t.includes('rat') || t.includes('night') || t.includes('rt')) {
+        timeStr = '08:00 PM';
+      }
     }
 
     const dateFormatted = dateObj.toLocaleDateString('en-US', {
@@ -553,29 +649,19 @@ export default function ChatScreen({ navigation, route }) {
     return {
       date: dateFormatted,
       displayTime: timeStr,
-      slotName: slot
+      isoDate: dateObj.toISOString().split('T')[0]
     };
   };
 
   const hasTimeInMessage = (text) => {
+    if (!text) return false;
     const t = text.toLowerCase();
-    return (
-      t.includes('kal') ||
-      t.includes('tomorrow') ||
-      t.includes('aaj') ||
-      t.includes('today') ||
-      t.includes('parson') ||
-      t.includes('day after') ||
-      t.includes('subah') ||
-      t.includes('morning') ||
-      t.includes('dopahar') ||
-      t.includes('afternoon') ||
-      t.includes('shaam') ||
-      t.includes('evening') ||
-      t.includes('raat') ||
-      t.includes('night') ||
-      /\b\d{1,2}\s*(am|pm|baje|o'clock)\b/i.test(t)
-    );
+    
+    // We check if the user specified an exact time (e.g. "7 bjy", "11:30", "2 pm", "10 baje")
+    const exactTimeRegex = /\b\d{1,2}\s*(am|pm|baje|bjy|bja|bje|o'clock)/i;
+    const hasColonTime = /\b\d{1,2}:\d{2}\b/.test(t);
+    
+    return exactTimeRegex.test(t) || hasColonTime;
   };
 
   // ── SEND MESSAGE ──────────────────────────────
@@ -789,6 +875,7 @@ export default function ChatScreen({ navigation, route }) {
 
   // ── DISCOVER PROVIDERS (reusable) ─────────────
   const handleNewServiceRequest = async (text, thinkId, addressAlreadyConfirmed = false) => {
+    setStartPrompt(text);
     let enrichedText = text;
     addLog('IntentAgent', `Parsing user request intent: "${text}"`, 'NLP-Parser', 'In Progress');
     
@@ -975,13 +1062,13 @@ export default function ChatScreen({ navigation, route }) {
     add({ id: uid(), type: 'user', text: `Nahi pata kia chahye (Inspection & Diagnosis) PKR 1000 choose kiya`, timestamp: ts() });
     
     // Process service selection directly to continue booking
-    const originalText = pendingData?.originalPrompt || '';
+    const originalText = startPrompt || pendingData?.originalPrompt || '';
     if (hasTimeInMessage(originalText)) {
       addLog('BookingAgent', 'Date/Time parsed from prompt. Auto-booking initiated...', 'parseTimeSlot', 'Found');
       executeAutoBooking(inspectionService, originalText);
     } else {
       addLog('BookingAgent', 'No Date/Time in prompt. Prompting user with slot options.', 'PromptSlots', 'Waiting');
-      const slots = generateTimeSlots();
+      const slots = generateTimeSlots(originalText);
       add({
         id: uid(),
         type: 'time_slots',
@@ -998,13 +1085,13 @@ export default function ChatScreen({ navigation, route }) {
     add({ id: uid(), type: 'user', text: `${service.name} (PKR ${service.price}) choose kiya`, timestamp: ts() });
     
     // Check if time slot was already mentioned in original user prompt
-    const originalText = pendingData?.originalPrompt || messages.find(m => m.type === 'user')?.text || '';
+    const originalText = startPrompt || pendingData?.originalPrompt || '';
     if (hasTimeInMessage(originalText)) {
       addLog('BookingAgent', 'Date/Time parsed from prompt. Auto-booking initiated...', 'parseTimeSlot', 'Found');
       executeAutoBooking(service, originalText);
     } else {
       addLog('BookingAgent', 'No Date/Time in prompt. Prompting user with slot options.', 'PromptSlots', 'Waiting');
-      const slots = generateTimeSlots();
+      const slots = generateTimeSlots(originalText);
       add({
         id: uid(),
         type: 'time_slots',
@@ -1015,39 +1102,62 @@ export default function ChatScreen({ navigation, route }) {
     }
   };
 
-  const generateTimeSlots = () => {
+  const generateTimeSlots = (text) => {
     const slots = [];
     const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
 
+    const t = text ? text.toLowerCase() : '';
+
+    // Standard hours list: 8 AM, 10 AM, 12 PM, 2 PM, 4 PM, 6 PM, 8 PM
     const times = [
-      { label: 'Morning', hour: 10, display: '10:00 AM' },
-      { label: 'Afternoon', hour: 14, display: '02:00 PM' },
-      { label: 'Evening', hour: 17, display: '05:00 PM' }
+      { hour: 8, display: '08:00 AM' },
+      { hour: 10, display: '10:00 AM' },
+      { hour: 12, display: '12:00 PM' },
+      { hour: 14, display: '02:00 PM' },
+      { hour: 16, display: '04:00 PM' },
+      { hour: 18, display: '06:00 PM' },
+      { hour: 20, display: '08:00 PM' }
     ];
 
-    const currentHour = today.getHours();
-    times.forEach(t => {
-      // Only show today's slot if the hour has not passed yet
-      if (currentHour < t.hour) {
-        slots.push({
-          label: `Today ${t.label} (${t.display})`,
-          value: `Today at ${t.display}`,
-          hour: t.hour,
-          date: today
-        });
-      }
-    });
+    // Determine if we should only show Tomorrow, only Today, or both
+    let showToday = true;
+    let showTomorrow = true;
 
-    times.forEach(t => {
-      slots.push({
-        label: `Tomorrow ${t.label} (${t.display})`,
-        value: `Tomorrow at ${t.display}`,
-        hour: t.hour,
-        date: tomorrow
+    if (t.includes('tomorrow') || t.includes('kal')) {
+      showToday = false;
+      showTomorrow = true;
+    } else if (t.includes('today') || t.includes('aaj') || t.includes('aj')) {
+      showToday = true;
+      showTomorrow = false;
+    }
+
+    if (showToday) {
+      const currentHour = today.getHours();
+      times.forEach(item => {
+        // Only show if the slot hour has not passed yet today
+        if (currentHour < item.hour) {
+          slots.push({
+            label: `Today ${item.display}`,
+            value: `Today at ${item.display}`,
+            hour: item.hour,
+            date: today
+          });
+        }
       });
-    });
+    }
+
+    if (showTomorrow) {
+      times.forEach(item => {
+        slots.push({
+          label: `Tomorrow ${item.display}`,
+          value: `Tomorrow at ${item.display}`,
+          hour: item.hour,
+          date: tomorrow
+        });
+      });
+    }
 
     return slots;
   };
@@ -1080,12 +1190,36 @@ export default function ChatScreen({ navigation, route }) {
       // Parse time preference
       const timeParsed = parseTimeSlot(timePref);
 
+      // Construct a precise ISO string to pass to the backend /api/book
+      let timePreferenceISO = timePref;
+      if (timeParsed && timeParsed.isoDate && timeParsed.displayTime) {
+        const timeMatch = timeParsed.displayTime.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        let hrs = 10;
+        let mins = 0;
+        if (timeMatch) {
+          hrs = parseInt(timeMatch[1]);
+          mins = parseInt(timeMatch[2]);
+          const pm = timeMatch[3].toUpperCase() === 'PM';
+          if (pm && hrs < 12) hrs += 12;
+          if (!pm && hrs === 12) hrs = 0;
+        }
+        
+        try {
+          // Construct using Karachi (Pakistan Standard Time) offset
+          const slotTimeObj = new Date(`${timeParsed.isoDate}T00:00:00+05:00`);
+          slotTimeObj.setHours(hrs, mins, 0, 0);
+          timePreferenceISO = slotTimeObj.toISOString();
+        } catch (e) {
+          console.error('Error generating exact slot ISO string:', e);
+        }
+      }
+
       // Construct request payload
       const updatedIntent = {
         ...(pendingData?.intent || {}),
         service_type: currentServiceType,
         location,
-        time_preference: timePref
+        time_preference: timePreferenceISO
       };
 
       addLog('BookingAgent', `Sending booking request to backend`, 'bookProvider', 'Request');
@@ -1522,8 +1656,7 @@ export default function ChatScreen({ navigation, route }) {
             >
               <Text style={s.notSureEmoji}>🤔</Text>
               <View style={s.notSureText}>
-                <Text style={s.notSureTitle}>Nahi pta kia chahye koi baat nh</Text>
-                <Text style={s.notSureSub}>provider apky pss akr chk krlega</Text>
+                <Text style={s.notSureTitle}>Nahi pta kia chahye koi baat nh provider apky pss akr chk krlega</Text>
               </View>
             </TouchableOpacity>
           </View>

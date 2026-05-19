@@ -47,10 +47,13 @@ export default function CheckoutScreen({ route, navigation }) {
       }
     });
 
-    // Default to tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setSelectedDate(tomorrow.toISOString().split('T')[0]);
+    // Default to today if before 8 PM, otherwise tomorrow
+    const now = new Date();
+    const defaultDate = new Date();
+    if (now.getHours() >= 20) {
+      defaultDate.setDate(defaultDate.getDate() + 1);
+    }
+    setSelectedDate(defaultDate.toISOString().split('T')[0]);
   }, []);
 
   // Prefill details from authenticated profile
@@ -107,12 +110,15 @@ export default function CheckoutScreen({ route, navigation }) {
   const getNext7Days = () => {
     const days = [];
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    for (let i = 1; i <= 7; i++) {
+    const now = new Date();
+    const startIdx = now.getHours() >= 20 ? 1 : 0;
+
+    for (let i = startIdx; i < startIdx + 7; i++) {
       const d = new Date();
       d.setDate(d.getDate() + i);
       days.push({
         value: d.toISOString().split('T')[0],
-        dayName: dayNames[d.getDay()],
+        dayName: i === 0 ? 'Today' : dayNames[d.getDay()],
         dateNum: d.getDate().toString()
       });
     }

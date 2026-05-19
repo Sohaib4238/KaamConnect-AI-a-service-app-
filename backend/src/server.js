@@ -261,6 +261,9 @@ app.post('/api/book', async (req, res) => {
     const traceId = trace_id || 'TR-' + Date.now();
     const bookingId = 'BK-' + Date.now();
     const getSlot = (timePref) => {
+      if (timePref && timePref.includes('T') && !isNaN(Date.parse(timePref))) {
+        return new Date(timePref).toISOString();
+      }
       const d = new Date();
       d.setMinutes(0, 0, 0, 0);
       switch(timePref) {
@@ -289,9 +292,10 @@ app.post('/api/book', async (req, res) => {
     };
     const slot = getSlot(intent.time_preference);
 
+    const providerId = provider.provider_id || provider.id || 'unknown_provider';
     const booking = {
       booking_id: bookingId, user_id: user_id || 'mobile-user',
-      provider_id: provider.provider_id || provider.id || 'unknown_provider',
+      provider_id: providerId,
       provider_name: provider.name || 'Specialist',
       service_type: intent.service_type || 'AC_REPAIR',
       location: intent.location || 'Karachi',
@@ -300,6 +304,22 @@ app.post('/api/book', async (req, res) => {
       price_estimate: provider.price_range || provider.simulated_state?.price_range_pkr || { min: 1500, max: 3000 },
     };
     await db.collection('bookings').doc(bookingId).set(booking);
+
+    if (providerId !== 'unknown_provider') {
+      try {
+        const providerRef = db.collection('providers').doc(providerId);
+        const providerDoc = await providerRef.get();
+        if (providerDoc.exists) {
+          const providerData = providerDoc.data();
+          const bookedSlots = providerData.booked_slots || [];
+          if (!bookedSlots.includes(slot)) {
+            await providerRef.update({ booked_slots: [...bookedSlots, slot] });
+          }
+        }
+      } catch (err) {
+        console.error('Error updating provider booked_slots:', err);
+      }
+    }
 
     const reminderTime = new Date(slot);
     reminderTime.setHours(reminderTime.getHours() - 1);
