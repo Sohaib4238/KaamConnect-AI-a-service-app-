@@ -72,4 +72,4 @@ async function askGroqCached(cacheKey, prompt, systemInstruction = null) {
   return result;
 }
 
-export { groq, askGroq as askGemini, askGroqJSON as askGeminiJSON, askGroqCached as askGeminiCached };
+export { groq, askGroq, askGroqJSON, askGroqCached };

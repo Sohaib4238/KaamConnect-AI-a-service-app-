@@ -60,7 +60,7 @@ router.post('/', async (req, res) => {
       meta: {
         processedAt: new Date().toISOString(),
         totalDurationMs: Date.now() - startTime,
-        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
       },
     });
   } catch (error) {

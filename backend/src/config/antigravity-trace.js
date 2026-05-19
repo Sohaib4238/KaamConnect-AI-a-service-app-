@@ -8,7 +8,7 @@
 
 const ANTIGRAVITY_SESSION = {
   platform: 'Google Antigravity',
-  model: 'Gemini 2.5 Flash (via Antigravity)',
+  model: 'LLaMA 3.3 70B (via Groq Cloud)',
   orchestration_mode: 'multi-agent-pipeline',
   skills: [
     'intent-parser',
@@ -43,7 +43,7 @@ function printAntigravityBanner(traceId) {
   console.log('\n╔═══════════════════════════════════════════╗');
   console.log('║     GOOGLE ANTIGRAVITY ORCHESTRATOR       ║');
   console.log('║     Platform: Google Antigravity           ║');
-  console.log('║     Model: Gemini 2.5 Flash               ║');
+  console.log('║     Model: LLaMA 3.3 70B (Groq)           ║');
   console.log('║     Skills: 8 specialized agents           ║');
   console.log('║     Tools: Maps, Firestore, FCM            ║');
   console.log('╚═══════════════════════════════════════════╝');

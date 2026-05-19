@@ -95,7 +95,7 @@ export default function SettingsScreen({ apiUrl, setApiUrl }) {
         <Text style={styles.infoHeading}>💡 Zero-Cost Stack Specifications</Text>
         <View style={styles.specRow}>
           <Text style={styles.specKey}>LLM Framework:</Text>
-          <Text style={styles.specVal}>Gemini 2.5 Flash via AI Studio</Text>
+          <Text style={styles.specVal}>Groq (LLaMA 3.3 70B)</Text>
         </View>
         <View style={styles.specRow}>
           <Text style={styles.specKey}>Orchestration:</Text>

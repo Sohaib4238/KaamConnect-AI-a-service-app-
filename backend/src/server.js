@@ -55,10 +55,10 @@ app.use('/api/providers', providersRoutes);
 app.get('/api/antigravity-info', (req, res) => {
   res.json({
     platform: 'Google Antigravity',
-    version: 'Gemini 2.5 Flash',
+    version: 'Groq (LLaMA 3.3 70B)',
     orchestration: 'Multi-agent pipeline with 8 skills',
     agents_active: [
-      { name: 'intent-parser', status: 'active', model: 'Gemini 2.5 Flash' },
+      { name: 'intent-parser', status: 'active', model: 'Groq (LLaMA 3.3 70B)' },
       { name: 'discovery-agent', status: 'active', model: 'Maps API + Firestore' },
       { name: 'provider-ranker', status: 'active', model: 'rule-based + GPS' },
       { name: 'booking-orchestrator', status: 'active', model: 'Firestore' },
@@ -340,7 +340,7 @@ app.post('/api/book', async (req, res) => {
 app.post('/api/suggest-service', async (req, res) => {
   try {
     const { problem, provider_services, service_type } = req.body;
-    const { askGeminiJSON } = await import('./config/gemini.js');
+    const { askGroqJSON } = await import('./config/groq.js');
     
     const prompt = `User problem: "${problem}"
 Available services: ${JSON.stringify(provider_services?.slice(0,8))}
@@ -355,7 +355,7 @@ Return JSON:
   "reasoning": "brief explanation in Urdu/English why this service"
 }`;
     
-    const result = await askGeminiJSON(prompt);
+    const result = await askGroqJSON(prompt);
     if (result.success) {
       res.json(result.data);
     } else {
@@ -569,7 +569,7 @@ app.get('/health', async (req, res) => {
     firestore: firestoreStatus,
     service: 'KaamConnect API',
     version: '1.0.0',
-    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+    model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
     timestamp: new Date().toISOString(),
   });
 });
@@ -607,8 +607,8 @@ const server = app.listen(PORT, HOST, () => {
   console.log(`\n${'═'.repeat(50)}`);
   console.log(`  🚀 KaamConnect API Server`);
   console.log(`  📡 Running on http://${HOST}:${PORT}`);
-  console.log(`  🤖 Model: Gemini 1.5 Flash (Vertex AI)`);
-  console.log(`  🔑 Vertex AI: ✅ Connected`);
+  console.log(`  🤖 Model: LLaMA 3.3 70B (via Groq Cloud)`);
+  console.log(`  🔑 Groq API: ✅ Connected`);
   console.log(`  💾 Database: Firestore ✅`);
   console.log(`${'═'.repeat(50)}\n`);
 });

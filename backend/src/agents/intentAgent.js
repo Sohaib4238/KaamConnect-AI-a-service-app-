@@ -1,4 +1,4 @@
-import { askGeminiCached } from '../config/gemini.js';
+import { askGroqCached } from '../config/groq.js';
 import { logStep } from '../utils/logger.js';
 
 const ROMAN_URDU_DICT = {
@@ -82,15 +82,15 @@ Conversation Context: ${JSON.stringify(sessionState)}
 Extract the intent and return JSON. If the user is asking for something cheaper or closer relative to a previous request, set is_refinement to true.`;
 
   const cacheKey = userInput.trim().toLowerCase().substring(0, 100);
-  const result = await askGeminiCached(cacheKey, prompt, SYSTEM_INSTRUCTION);
-  console.log('[Intent Debug] Gemini result:', JSON.stringify(result));
+  const result = await askGroqCached(cacheKey, prompt, SYSTEM_INSTRUCTION);
+  console.log('[Intent Debug] Groq result:', JSON.stringify(result));
 
   const duration = Date.now() - startTime;
 
   if (!result.success) {
     logStep(traceId, 1, 'intent-parser',
       'User input: ' + userInput,
-      'Gemini call failed: ' + result.error,
+      'Groq call failed: ' + result.error,
       'Use fallback parsing',
       'Returning low-confidence result',
       duration

@@ -59,7 +59,7 @@ export default function SplashScreen({ onComplete }) {
       
       {/* Tagline */}
       <Animated.Text style={[s.tagline, { opacity: taglineOpacity }]}>
-        Trusted Local Services.
+        Local People. Trusted Service.
       </Animated.Text>
     </View>
   );

@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F6F8F4"
     },
     "platforms": [
       "ios",
@@ -33,6 +33,7 @@
       }
     },
     "android": {
+      "package": "com.kaamconnect.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

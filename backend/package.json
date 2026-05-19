@@ -1,7 +1,7 @@
 {
   "name": "kaamconnect-backend",
   "version": "1.0.0",
-  "description": "AI Service Orchestrator for Informal Economy — Agentic backend powered by Gemini",
+  "description": "AI Service Orchestrator for Informal Economy",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -10,7 +10,8 @@
   },
   "keywords": [
     "agentic-ai",
-    "gemini",
+    "groq",
+    "llama",
     "service-orchestrator",
     "informal-economy"
   ],
