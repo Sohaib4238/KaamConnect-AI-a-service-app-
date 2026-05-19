@@ -151,7 +151,9 @@ async function rankProviders(discoveryResult, intent, traceId = 'default') {
       phone: topPick.phone,
       location: topPick.location,
       reasoning: topPick.reasoning,
-      scores_breakdown: topPick.scores
+      scores_breakdown: topPick.scores,
+      extended_area: topPick.extended_area,
+      surcharge_pkr: topPick.surcharge_pkr
     },
     alternatives: alternatives.map(p => ({
       provider_id: p.place_id || p.id,
@@ -159,9 +161,12 @@ async function rankProviders(discoveryResult, intent, traceId = 'default') {
       score: p.total_score,
       distance_km: parseFloat(p.distance_km || 0).toFixed(2),
       rating: (p.simulated_state?.rating || 3.5).toFixed(1),
-      reasoning: p.reasoning
+      reasoning: p.reasoning,
+      extended_area: p.extended_area,
+      surcharge_pkr: p.surcharge_pkr
     })),
-    total_scored: ranked.length
+    total_scored: ranked.length,
+    search_expanded: discoveryResult.search_expanded
   };
 }
 

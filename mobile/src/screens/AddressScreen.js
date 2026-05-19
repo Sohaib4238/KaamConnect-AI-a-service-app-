@@ -15,7 +15,7 @@ const C = {
 
 const LABELS = ['Home', 'Office', 'Parents', 'Other'];
 
-export default function AddressScreen({ navigation }) {
+export default function AddressScreen({ navigation, route }) {
   const [addresses, setAddresses] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newAddress, setNewAddress] = useState({
@@ -203,7 +203,17 @@ export default function AddressScreen({ navigation }) {
       }
       await AsyncStorage.setItem('userArea', area);
     }
-    navigation.goBack();
+    if (route.params?.returnToChat) {
+      navigation.navigate('Chat', {
+        screen: 'ChatMain',
+        params: {
+          addressUpdated: true,
+          pendingRequest: route.params.pendingRequest
+        }
+      });
+    } else {
+      navigation.goBack();
+    }
   };
 
   const saveAddress = async () => {
@@ -237,7 +247,17 @@ export default function AddressScreen({ navigation }) {
 
     setShowAddForm(false);
     setNewAddress({ label: 'Home', address: '', city: 'Karachi', details: '' });
-    navigation.goBack();
+    if (route.params?.returnToChat) {
+      navigation.navigate('Chat', {
+        screen: 'ChatMain',
+        params: {
+          addressUpdated: true,
+          pendingRequest: route.params.pendingRequest
+        }
+      });
+    } else {
+      navigation.goBack();
+    }
   };
 
   const deleteAddress = async (id, e) => {

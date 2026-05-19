@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasAddress, setHasAddress] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -28,6 +29,7 @@ export function AuthProvider({ children }) {
       } else {
         setUser(null);
         setUserProfile(null);
+        setHasAddress(false);
       }
       setLoading(false);
     });
@@ -39,7 +41,10 @@ export function AuthProvider({ children }) {
       const docRef = doc(db, 'users', uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        return docSnap.data();
+        const profile = docSnap.data();
+        const savedAddresses = profile?.saved_addresses || [];
+        setHasAddress(savedAddresses.length > 0 || !!profile?.address_setup_complete);
+        return profile;
       }
       return null;
     } catch (error) {
@@ -63,6 +68,7 @@ export function AuthProvider({ children }) {
       };
       await setDoc(docRef, profile);
       setUserProfile(profile);
+      setHasAddress(false);
       return profile;
     } catch (error) {
       console.error('[Auth] Create profile error:', error);
@@ -147,6 +153,20 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const markAddressSet = async () => {
+    if (!user) return;
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      await setDoc(docRef, {
+        address_setup_complete: true,
+        updated_at: serverTimestamp()
+      }, { merge: true });
+      setHasAddress(true);
+    } catch (error) {
+      console.error('[Auth] markAddressSet error:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -159,6 +179,8 @@ export function AuthProvider({ children }) {
       updateUserProfile,
       loadUserProfile,
       incrementBookingCount,
+      hasAddress,
+      markAddressSet,
     }}>
       {children}
     </AuthContext.Provider>

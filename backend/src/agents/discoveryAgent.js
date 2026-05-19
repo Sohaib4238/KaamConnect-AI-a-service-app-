@@ -138,11 +138,16 @@ async function discoverProviders(intent, traceId = 'default') {
   });
 
   // Step 4b: Filter by distance — only show providers within 50km
+  let searchExpanded = false;
   let filteredProviders = firestoreWithDistance.filter(p => p.distance_km <= 50);
 
-  if (filteredProviders.length === 0) {
+  if (filteredProviders.length < 2) {
     // Expand to 100km
-    filteredProviders = firestoreWithDistance.filter(p => p.distance_km <= 100);
+    const expanded = firestoreWithDistance.filter(p => p.distance_km <= 100);
+    if (expanded.length > filteredProviders.length) {
+      searchExpanded = true;
+      filteredProviders = expanded;
+    }
   }
 
   if (filteredProviders.length === 0) {
@@ -155,7 +160,7 @@ async function discoverProviders(intent, traceId = 'default') {
   console.log('[Discovery] Distance filter:', firestoreWithDistance.length, '→', filteredProviders.length, 'providers within range');
 
   // Step 5: Merge results — filtered Firestore providers first
-  const allProviders = [
+  const mergedProviders = [
     ...filteredProviders,
     ...mapsProviders.slice(0, 5).map(p => ({
       ...p,
@@ -165,6 +170,20 @@ async function discoverProviders(intent, traceId = 'default') {
       simulated_state: generateSimulatedState()
     }))
   ];
+
+  // Apply surcharge calculation for any provider > 50km
+  const allProviders = mergedProviders.map(p => {
+    if (p.distance_km > 50) {
+      const extraKm = p.distance_km - 50;
+      const surcharge_pkr = Math.min(300, Math.max(100, Math.round(extraKm * 8 / 10) * 10));
+      return {
+        ...p,
+        extended_area: true,
+        surcharge_pkr
+      };
+    }
+    return p;
+  });
 
   const duration = Date.now() - startTime;
 
@@ -182,7 +201,8 @@ async function discoverProviders(intent, traceId = 'default') {
     providers: allProviders,
     user_location: { lat: userLat, lng: userLng },
     geocoded_address: geocodedAddress,
-    total_found: allProviders.length
+    total_found: allProviders.length,
+    search_expanded: searchExpanded
   };
 }
 
@@ -224,7 +244,7 @@ export async function runDiscoveryAgent(service_type, location) {
     providers: res.providers,
     searchMeta: {
       locationName: res.geocoded_address,
-      expandedRadiusUsed: res.total_found === 0,
+      expandedRadiusUsed: res.search_expanded || res.total_found === 0,
       fallbackSuggestion: null
     }
   };

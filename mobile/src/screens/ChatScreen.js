@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform
+  StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, Keyboard, StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -86,7 +86,7 @@ const SERVICES_NEEDING_PARTS = [
   'AC_REPAIR', 'ELECTRICIAN', 'PLUMBER', 'CARPENTER'
 ];
 
-export default function ChatScreen({ navigation }) {
+export default function ChatScreen({ navigation, route }) {
   const { user, incrementBookingCount } = useAuth();
   const [messages, setMessages] = useState([GREETING]);
   const [input, setInput] = useState('');
@@ -100,6 +100,7 @@ export default function ChatScreen({ navigation }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [currentServiceType, setCurrentServiceType] = useState('');
   const scrollRef = useRef();
+  const cleanupRef = useRef(null);
 
   // Inline state for agentic matching/service selections
   const [selectedProvider, setSelectedProvider] = useState(null);
@@ -205,6 +206,25 @@ export default function ChatScreen({ navigation }) {
   };
 
   useEffect(() => { requestLocation(); }, []);
+
+  useEffect(() => {
+    if (route.params?.addressUpdated && route.params?.pendingRequest) {
+      const request = route.params.pendingRequest;
+      // Clear route params so this only runs once
+      navigation.setParams({ addressUpdated: undefined, pendingRequest: undefined });
+      
+      const proceedAfterNewAddress = async () => {
+        const savedAddrStr = await AsyncStorage.getItem('selected_address');
+        const savedAddress = savedAddrStr ? JSON.parse(savedAddrStr) : null;
+        
+        if (savedAddress) {
+          await handleAddressConfirmed(savedAddress, request);
+        }
+      };
+      
+      proceedAfterNewAddress();
+    }
+  }, [route.params]);
 
   const hasLocationInMessage = (text) => {
     const locationWords = [
@@ -327,6 +347,7 @@ export default function ChatScreen({ navigation }) {
     setInput('');
     setLoading(true);
     const cleanup = showStepByStep();
+    cleanupRef.current = cleanup;
     const thinkId = uid();
     add({ id: thinkId, type: 'thinking', text: '', timestamp: ts() });
 
@@ -373,6 +394,25 @@ export default function ChatScreen({ navigation }) {
               `ki services dikha raha hoon — wahan se select kar lein.`
           });
           setStage('providers_shown');
+        }
+        setLoading(false);
+        cleanup();
+        return;
+      }
+
+      // ── If awaiting address confirm ──
+      if (stage === 'awaiting_address_confirm' && pendingData) {
+        drop(thinkId);
+        const lower = text.toLowerCase();
+        if (lower.includes('yes') || lower.includes('haan') || lower.includes('confirm') || lower.includes('ok') || lower.includes('theek')) {
+          await handleAddressConfirmed(pendingData.savedAddress, pendingData.originalRequest);
+        } else if (lower.includes('no') || lower.includes('change') || lower.includes('nahin') || lower.includes('badal')) {
+          handleAddressChange(pendingData.originalRequest);
+        } else {
+          add({
+            id: uid(), type: 'bot', timestamp: ts(),
+            text: `Kripya batayein ke kya aap isi address par service chahte hain? Niche diye gaye options select karein ya "Yes" / "No" likhein. 😊`
+          });
         }
         setLoading(false);
         cleanup();
@@ -471,18 +511,84 @@ export default function ChatScreen({ navigation }) {
     }
   };
 
+  const handleAddressConfirmed = async (savedAddress, originalRequest) => {
+    setStage('idle');
+    setPendingData({ addressConfirmed: true });
+    
+    add({
+      id: uid(), type: 'bot', timestamp: ts(),
+      text: `✅ Perfect! Searching near ${savedAddress.address}...`
+    });
+    
+    const thinkId = uid();
+    add({ id: thinkId, type: 'thinking', timestamp: ts(), text: '' });
+    setLoading(true);
+    const cleanup = showStepByStep();
+    cleanupRef.current = cleanup;
+    
+    await handleNewServiceRequest(originalRequest, thinkId, true);
+    setLoading(false);
+    cleanup();
+  };
+
+  const handleAddressChange = (originalRequest) => {
+    setStage('idle');
+    
+    add({
+      id: uid(), type: 'bot', timestamp: ts(),
+      text: `📍 Apna naya address set karein — phir wapas aayein ` +
+        `aur apni request dobara bhejein.\n\n` +
+        `Main aapko wahan ke providers dikhaunga! 😊`
+    });
+    
+    add({
+      id: uid(), type: 'address_change_prompt', timestamp: ts(),
+      data: { originalRequest }
+    });
+  };
+
   // ── DISCOVER PROVIDERS (reusable) ─────────────
-  const handleNewServiceRequest = async (text, thinkId) => {
+  const handleNewServiceRequest = async (text, thinkId, addressAlreadyConfirmed = false) => {
     let enrichedText = text;
     addLog('IntentAgent', `Parsing user request intent: "${text}"`, 'NLP-Parser', 'In Progress');
     
+    let savedAddress = null;
     try {
       const savedAddrStr = await AsyncStorage.getItem('selected_address');
+      savedAddress = savedAddrStr ? JSON.parse(savedAddrStr) : null;
+      
+      if (!addressAlreadyConfirmed && savedAddress && !pendingData?.addressConfirmed) {
+        drop(thinkId);
+        setLoading(false);
+        cleanupRef.current?.();
+        
+        add({
+          id: uid(), type: 'bot', timestamp: ts(),
+          text: `📍 Kya aap yeh service apne saved address par chahte hain?\n\n` +
+            `🏠 ${savedAddress.label}: ${savedAddress.address}, ${savedAddress.city}`
+        });
+        
+        add({
+          id: uid(), type: 'address_confirm', timestamp: ts(),
+          data: { 
+            savedAddress, 
+            originalRequest: text 
+          }
+        });
+        
+        setStage('awaiting_address_confirm');
+        setPendingData({ 
+          originalRequest: text, 
+          savedAddress,
+          addressConfirmed: false 
+        });
+        return;
+      }
+      
       const userArea = await AsyncStorage.getItem('userArea');
       let currentArea = userArea;
-      if (savedAddrStr) {
-        const parsed = JSON.parse(savedAddrStr);
-        currentArea = parsed.address || parsed.area || parsed.name || userArea;
+      if (savedAddress) {
+        currentArea = savedAddress.address || savedAddress.area || savedAddress.name || userArea;
       }
       
       const locationMentioned = /karachi|clifton|gulshan|defence|dha|nazimabad|korangi|malir|saddar|pechs|bahadurabad|islamabad|g-13|f-7|f-6|g-11|i-8/i.test(text);
@@ -498,7 +604,12 @@ export default function ChatScreen({ navigation }) {
       console.log('Failed to check userArea in ChatScreen:', e);
     }
 
-    const result = await discoverProviders(enrichedText, userLocation);
+    const locationToUse = savedAddress ? {
+      lat: savedAddress.latitude,
+      lng: savedAddress.longitude
+    } : userLocation;
+    
+    const result = await discoverProviders(enrichedText, locationToUse);
     drop(thinkId);
 
     if (result.status === 'needs_clarification') {
@@ -982,6 +1093,11 @@ export default function ChatScreen({ navigation }) {
         <Text style={s.provStat}>📍 {String(Number(provider.distance_km || 0).toFixed(1))} km away</Text>
         <Text style={s.provStat}>💰 PKR {String(provider.simulated_state?.price_range_pkr?.min || provider.price_range?.min || '1500')}–{String(provider.simulated_state?.price_range_pkr?.max || provider.price_range?.max || '3000')}</Text>
       </View>
+      {(provider.extended_area || provider.surcharge_pkr) ? (
+        <View style={s.surchargeBadge}>
+          <Text style={s.surchargeText}>🚗 Long Distance Surcharge: +PKR {provider.surcharge_pkr || 150}</Text>
+        </View>
+      ) : null}
       {isTop ? <Text style={s.provNote}>📝 AI-ranked best option — Score: {String(Number(provider.score || 0).toFixed(2))}</Text> : null}
       <Text style={s.tapHint}>Tap to select →</Text>
     </TouchableOpacity>
@@ -1045,6 +1161,11 @@ export default function ChatScreen({ navigation }) {
         <View key={msg.id} style={s.rowBot}>
           <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
           <View style={s.bubbleBotWide}>
+            {(r?.search_expanded || r?.expanded || r?.expandedRadiusUsed) ? (
+              <View style={s.expansionBanner}>
+                <Text style={s.expansionBannerText}>⚠️ Qareeb koi professional nahi mila, isliye humne search radius barha kar 100km kar diya hai.</Text>
+              </View>
+            ) : null}
             <Text style={s.provHeader}>Aapke area mein yeh {getServiceLabel(currentServiceType)}s available hain:</Text>
             {r?.top_pick ? renderProviderCard(r.top_pick, 0, true) : null}
             {r?.alternatives?.map((alt, i) => renderProviderCard(alt, i + 1, false))}
@@ -1206,6 +1327,51 @@ export default function ChatScreen({ navigation }) {
         </View>
       );
     }
+    if (msg.type === 'address_confirm') {
+      const { savedAddress, originalRequest } = msg.data;
+      return (
+        <View key={msg.id} style={s.rowBot}>
+          <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
+          <View style={s.bubbleBotWide}>
+            <View style={s.addressConfirmCard}>
+              <TouchableOpacity
+                style={s.addrConfirmYes}
+                onPress={() => handleAddressConfirmed(savedAddress, originalRequest)}
+              >
+                <Text style={s.addrConfirmBtnText}>Haan, isi address par ✅</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.addrConfirmNo}
+                onPress={() => handleAddressChange(originalRequest)}
+              >
+                <Text style={s.addrConfirmBtnText}>Nahi, address badlein 📍</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    }
+    if (msg.type === 'address_change_prompt') {
+      const { originalRequest } = msg.data;
+      return (
+        <View key={msg.id} style={s.rowBot}>
+          <View style={s.avatarWrap}><Text style={s.avatar}>🤖</Text></View>
+          <View style={s.bubbleBotWide}>
+            <TouchableOpacity
+              style={s.changeAddressBtn}
+              onPress={() => {
+                navigation.navigate('ManualBooking', {
+                  screen: 'AddressScreen',
+                  params: { returnToChat: true, pendingRequest: originalRequest }
+                });
+              }}
+            >
+              <Text style={s.changeAddressBtnText}>⚙️ Go to Address Settings</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
     if (msg.type === 'booking') {
       return (
         <View key={msg.id} style={s.rowBot}>
@@ -1236,8 +1402,10 @@ export default function ChatScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={s.container} edges={['top']}>
-      {/* HEADER */}
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F6FA' }} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Header — stays fixed at top */}
       <View style={s.header}>
         <View style={s.headerLeft}>
           <View style={s.logoDot} />
@@ -1280,61 +1448,60 @@ export default function ChatScreen({ navigation }) {
         </View>
       </View>
 
-      <View style={s.mainBodyRow}>
-        {/* CHAT AREA */}
-        <View style={s.chatContainer}>
-          {/* QUICK PROMPTS */}
-          {messages.length <= 1 ? (
-            <View style={s.quickWrap}>
-              <Text style={s.quickLabel}>✨ Jaldi try karein:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.quickScroll}>
-                {QUICK.map((p, i) => (
-                  <TouchableOpacity key={i} style={s.quickChip} onPress={() => sendMessage(p)}>
-                    <Text style={s.quickChipText}>{p}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          ) : null}
+      {/* This View fills remaining space and handles keyboard */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        {/* Quick prompts — stays fixed below header */}
+        {messages.length <= 1 ? (
+          <View style={s.quickWrap}>
+            <Text style={s.quickLabel}>✨ Jaldi try karein:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.quickScroll}>
+              {QUICK.map((p, i) => (
+                <TouchableOpacity key={i} style={s.quickChip} onPress={() => sendMessage(p)}>
+                  <Text style={s.quickChipText}>{p}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
 
-          {/* MESSAGES */}
-          <ScrollView
-            ref={scrollRef} style={s.msgArea} contentContainerStyle={s.msgContent}
-            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-            automaticallyAdjustKeyboardInsets={true}
-          >
-            {messages.map(renderMessage)}
-          </ScrollView>
+        {/* Messages scroll area */}
+        <ScrollView
+          ref={scrollRef}
+          style={{ flex: 1 }}
+          contentContainerStyle={s.msgContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+        >
+          {messages.map(renderMessage)}
+        </ScrollView>
 
-          {/* INPUT */}
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-            style={{ backgroundColor: '#FFFFFF' }}
+        {/* Input bar — this moves up with keyboard */}
+        <View style={s.inputBar}>
+          <TextInput
+            style={s.input} value={input} onChangeText={setInput}
+            placeholder={stage === 'providers_shown' ? 'Number batain (1, 2, ya 3)...' : 'Apni zaroorat batain...'}
+            placeholderTextColor={C.textMuted} multiline maxLength={500}
+            onSubmitEditing={() => sendMessage()}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollRef.current?.scrollToEnd({ animated: true });
+              }, 300);
+            }}
+          />
+          <TouchableOpacity
+            style={[s.sendBtn, (!input.trim() || loading) ? s.sendBtnOff : null]}
+            onPress={() => sendMessage()}
+            disabled={!input.trim() || loading}
           >
-            <View style={s.inputBar}>
-              <TextInput
-                style={s.input} value={input} onChangeText={setInput}
-                placeholder={stage === 'providers_shown' ? 'Number batain (1, 2, ya 3)...' : 'Apni zaroorat batain...'}
-                placeholderTextColor={C.textMuted} multiline maxLength={500}
-                onSubmitEditing={() => sendMessage()}
-                onFocus={() => {
-                  setTimeout(() => {
-                    scrollRef.current?.scrollToEnd({ animated: true });
-                  }, 300);
-                }}
-              />
-              <TouchableOpacity
-                style={[s.sendBtn, (!input.trim() || loading) ? s.sendBtnOff : null]}
-                onPress={() => sendMessage()}
-                disabled={!input.trim() || loading}
-              >
-                <Ionicons name="send" size={18} color={loading ? C.textMuted : '#fff'} />
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
+            <Ionicons name="send" size={18} color={loading ? C.textMuted : '#fff'} />
+          </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -1613,4 +1780,40 @@ const s = StyleSheet.create({
   notSureText: { flex: 1 },
   notSureTitle: { color: '#1A1A2E', fontSize: 13, fontWeight: '700' },
   notSureSub: { color: '#555570', fontSize: 11, marginTop: 1 },
+
+  addressConfirmCard: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginTop: 8 },
+  addrConfirmYes: { flex: 1, backgroundColor: '#00C853', paddingVertical: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  addrConfirmNo: { flex: 1, backgroundColor: '#FF9500', paddingVertical: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  addrConfirmBtnText: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  changeAddressBtn: { backgroundColor: '#00C853', paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  changeAddressBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+
+  surchargeBadge: {
+    backgroundColor: '#FFF2E6',
+    borderWidth: 1,
+    borderColor: '#FF9500',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  surchargeText: {
+    color: '#D46B08',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  expansionBanner: {
+    backgroundColor: '#FFF9E6',
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9500',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 10,
+  },
+  expansionBannerText: {
+    color: '#B36B00',
+    fontSize: 12,
+    fontWeight: '700',
+  },
 });

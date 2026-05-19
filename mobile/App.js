@@ -18,6 +18,7 @@ import AgentTraceScreen from './src/screens/AgentTraceScreen';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import AuthScreen from './src/screens/AuthScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import OnboardingAddressScreen from './src/screens/OnboardingAddressScreen';
 
 const Tab = createBottomTabNavigator();
 const ChatStack = createStackNavigator();
@@ -54,7 +55,7 @@ const TAB_ICONS = {
 };
 
 function AppNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading, hasAddress } = useAuth();
 
   if (loading) {
     return (
@@ -72,6 +73,10 @@ function AppNavigator() {
 
   if (!user) {
     return <AuthScreen />;
+  }
+
+  if (!hasAddress) {
+    return <OnboardingAddressScreen />;
   }
 
   return (
