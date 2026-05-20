@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // For Expo Go on physical device — use your machine's local IP
 // For emulator — use 10.0.2.2:3000
-const DEFAULT_URL = 'https://kaamconnect-ai-a-service-app-production.up.railway.app';
+const DEFAULT_URL = 'https://kaamconnect-ai-a-service-app.onrender.com';
 export let BASE_URL = DEFAULT_URL;
 
 export const getDefaultApiUrl = () => DEFAULT_URL;
