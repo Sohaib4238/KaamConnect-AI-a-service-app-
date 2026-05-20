@@ -1,6 +1,5 @@
 # 🇵🇰 KaamConnect (کام کنیکٹ)
 ### AI-Powered Service Orchestrator for the Informal Economy
-> **Winner & Finalist Entry for Google Hackathon**  
 > *Core Agentic AI built, optimized, and orchestrated via Google Antigravity.*
 
 ---
@@ -158,29 +157,6 @@ A real document is written to the **Firestore Database**:
 1.  **Mock Provider Dataset:** Provider availability schedules, prices, and ratings are loaded from a robust mock database tailored to Pakistan's urban centers (Islamabad, Karachi).
 2.  **Internet Requirement:** Because map tiles are loaded via OpenStreetMap CDN, the mobile app requires an active internet connection to load mapping visual aids.
 3.  **Authentication:** Simple phone or social login is simulated using Firebase Auth sandbox limits.
-
----
-
-## 👨‍💻 Installation & Run Guide
-
-### Prerequisite:
-*   NodeJS v18+
-*   Expo Go app on your physical device
-
-### 1. Run Backend
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-### 2. Run Mobile App
-```bash
-cd mobile
-npm install
-npx expo start
-```
-Scan the QR code using the Expo Go app on your phone.
 
 ---
 *Created with passion for the Google Antigravity Hackathon.*
