@@ -36,6 +36,14 @@ export default function CheckoutScreen({ route, navigation }) {
   const [booking, setBooking] = useState(false);
   const [slotError, setSlotError] = useState(null);
 
+  // Helper to get local YYYY-MM-DD string (avoids UTC shift issues)
+  const getLocalDateString = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   // Load saved details and address
   useEffect(() => {
     AsyncStorage.getItem('user_profile').then(val => {
@@ -47,13 +55,13 @@ export default function CheckoutScreen({ route, navigation }) {
       }
     });
 
-    // Default to today if before 8 PM, otherwise tomorrow
+    // Default to today if before 8 PM local time, otherwise tomorrow
     const now = new Date();
     const defaultDate = new Date();
     if (now.getHours() >= 20) {
       defaultDate.setDate(defaultDate.getDate() + 1);
     }
-    setSelectedDate(defaultDate.toISOString().split('T')[0]);
+    setSelectedDate(getLocalDateString(defaultDate));
   }, []);
 
   // Prefill details from authenticated profile
@@ -117,7 +125,7 @@ export default function CheckoutScreen({ route, navigation }) {
       const d = new Date();
       d.setDate(d.getDate() + i);
       days.push({
-        value: d.toISOString().split('T')[0],
+        value: getLocalDateString(d),
         dayName: i === 0 ? 'Today' : dayNames[d.getDay()],
         dateNum: d.getDate().toString()
       });

@@ -35,9 +35,10 @@ export default function AddressScreen({ navigation, route }) {
   const [showMap, setShowMap] = useState(false);
   const [reverseGeoAddress, setReverseGeoAddress] = useState('');
 
-  const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyD4ar1JvuWVEgClUXjxW87KfpT3Sx9kfuA';
 
   const reverseGeocode = async (latitude, longitude) => {
+    // Try Google Geocoding API first
     try {
       const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
       const response = await fetch(url);
@@ -47,6 +48,22 @@ export default function AddressScreen({ navigation, route }) {
       }
     } catch (e) {
       console.error('REST reverse geocode failed:', e);
+    }
+    // Fallback: use expo-location reverse geocoding
+    try {
+      const [place] = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (place) {
+        const addr = [place.streetNumber, place.street, place.district, place.city].filter(Boolean).join(', ');
+        return [{
+          formatted_address: addr,
+          address_components: [
+            { long_name: place.city || 'Karachi', types: ['locality'] },
+            { long_name: place.district || place.subregion || '', types: ['sublocality_level_1'] }
+          ]
+        }];
+      }
+    } catch (e2) {
+      console.error('Expo reverse geocode also failed:', e2);
     }
     return null;
   };
