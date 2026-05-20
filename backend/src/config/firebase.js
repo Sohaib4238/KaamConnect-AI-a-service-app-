@@ -14,8 +14,13 @@ try {
 
   // 1. Check if the JSON is in the environment variables (for cloud hosts like Railway)
   if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
-    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-    console.log('[Firebase] Loading credential from environment variable');
+    try {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+      console.log('[Firebase] Loading credential from environment variable');
+    } catch (parseErr) {
+      console.error('[Firebase] JSON Parse error for FIREBASE_SERVICE_ACCOUNT_JSON:', parseErr.message);
+      console.error('[Firebase] Value was:', process.env.FIREBASE_SERVICE_ACCOUNT_JSON.substring(0, 80) + '...');
+    }
   } else {
     // 2. Fall back to local file path (for local development)
     const serviceAccountPath = path.resolve(__dirname, '../../service-account.json');

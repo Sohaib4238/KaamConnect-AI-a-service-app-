@@ -22,9 +22,36 @@ dotenv.config();
 // Ensure Google Application Credentials are set for Vertex AI
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-process.env.GOOGLE_APPLICATION_CREDENTIALS = path.resolve(__dirname, '../service-account.json');
+
+let credentialsPath = '';
+
+// Check if running on cloud container (like Railway) with env JSON credentials
+if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+  try {
+    const tempPath = path.resolve(__dirname, '../service-account-temp.json');
+    fs.writeFileSync(tempPath, process.env.FIREBASE_SERVICE_ACCOUNT_JSON, 'utf8');
+    credentialsPath = tempPath;
+    console.log('[Credentials] Successfully generated runtime service-account-temp.json from env variable');
+  } catch (err) {
+    console.error('[Credentials] Failed to write runtime credentials file:', err.message);
+  }
+} else {
+  // Fall back to local file
+  const localPath = path.resolve(__dirname, '../service-account.json');
+  if (fs.existsSync(localPath)) {
+    credentialsPath = localPath;
+    console.log('[Credentials] Using local service-account.json');
+  }
+}
+
+if (credentialsPath) {
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
+} else {
+  console.warn('[Credentials] No valid credentials file found or generated. Vertex AI features may fail.');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
