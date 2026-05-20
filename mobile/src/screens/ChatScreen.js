@@ -95,6 +95,7 @@ export default function ChatScreen({ navigation, route }) {
   const [stage, setStage] = useState('idle'); // idle | providers_shown | services_shown | awaiting_time | confirmed
   const [startPrompt, setStartPrompt] = useState('');
   const [pendingData, setPendingData] = useState(null); // { intent, ranking, trace_id, originalPrompt }
+  const [activeTraceId, setActiveTraceId] = useState(null);
   // GPS location state
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('unknown'); // 'unknown' | 'granted' | 'denied'
@@ -138,6 +139,7 @@ export default function ChatScreen({ navigation, route }) {
             setMessages(loadedMsgs);
             setStage(lastSession.stage || 'idle');
             setPendingData(lastSession.pendingData || null);
+            setActiveTraceId(lastSession.activeTraceId || null);
             setSelectedProvider(lastSession.selectedProvider || null);
             setSelectedService(lastSession.selectedService || null);
             if (lastSession.clickedMessageIds) {
@@ -161,6 +163,7 @@ export default function ChatScreen({ navigation, route }) {
           messages: [GREETING],
           stage: 'idle',
           pendingData: null,
+          activeTraceId: null,
           selectedProvider: null,
           selectedService: null,
           clickedMessageIds: [],
@@ -202,6 +205,7 @@ export default function ChatScreen({ navigation, route }) {
           stage,
           startPrompt,
           pendingData,
+          activeTraceId,
           selectedProvider,
           selectedService,
           clickedMessageIds,
@@ -218,7 +222,7 @@ export default function ChatScreen({ navigation, route }) {
       setSessions(updatedSessions);
       AsyncStorage.setItem('kaamconnect_chat_sessions', JSON.stringify(updatedSessions));
     }
-  }, [messages, stage, startPrompt, pendingData, selectedProvider, selectedService, clickedMessageIds, selectedServicesMap, ratingsMap]);
+  }, [messages, stage, startPrompt, pendingData, activeTraceId, selectedProvider, selectedService, clickedMessageIds, selectedServicesMap, ratingsMap]);
 
   const startNewChat = async () => {
     const newId = uid();
@@ -229,6 +233,7 @@ export default function ChatScreen({ navigation, route }) {
       stage: 'idle',
       startPrompt: '',
       pendingData: null,
+      activeTraceId: null,
       selectedProvider: null,
       selectedService: null,
       clickedMessageIds: [],
@@ -243,6 +248,7 @@ export default function ChatScreen({ navigation, route }) {
     setStage('idle');
     setStartPrompt('');
     setPendingData(null);
+    setActiveTraceId(null);
     setSelectedProvider(null);
     setSelectedService(null);
     setClickedMessageIds([]);
@@ -261,6 +267,7 @@ export default function ChatScreen({ navigation, route }) {
     setStage(session.stage || 'idle');
     setStartPrompt(session.startPrompt || '');
     setPendingData(session.pendingData || null);
+    setActiveTraceId(session.activeTraceId || null);
     setSelectedProvider(session.selectedProvider || null);
     setSelectedService(session.selectedService || null);
     setClickedMessageIds(session.clickedMessageIds || []);
@@ -280,6 +287,7 @@ export default function ChatScreen({ navigation, route }) {
         stage: 'idle',
         startPrompt: '',
         pendingData: null,
+        activeTraceId: null,
         selectedProvider: null,
         selectedService: null,
         clickedMessageIds: [],
@@ -293,6 +301,7 @@ export default function ChatScreen({ navigation, route }) {
       setStage('idle');
       setStartPrompt('');
       setPendingData(null);
+      setActiveTraceId(null);
       setSelectedProvider(null);
       setSelectedService(null);
       setClickedMessageIds([]);
@@ -312,6 +321,7 @@ export default function ChatScreen({ navigation, route }) {
         setStage(first.stage || 'idle');
         setStartPrompt(first.startPrompt || '');
         setPendingData(first.pendingData || null);
+        setActiveTraceId(first.activeTraceId || null);
         setSelectedProvider(first.selectedProvider || null);
         setSelectedService(first.selectedService || null);
         setClickedMessageIds(first.clickedMessageIds || []);
@@ -975,6 +985,7 @@ export default function ChatScreen({ navigation, route }) {
       });
       setStage('providers_shown');
       setPendingData({ intent: result.intent, ranking: result.ranking, trace_id: result.trace_id, originalPrompt: text });
+      setActiveTraceId(result.trace_id);
     }
   };
 
@@ -1228,7 +1239,7 @@ export default function ChatScreen({ navigation, route }) {
       const result = await bookProvider(
         selectedProvider,
         updatedIntent,
-        pendingData?.trace_id || `TR-${Date.now().toString(36)}`,
+        activeTraceId || pendingData?.trace_id || `TR-${Date.now().toString(36)}`,
         user?.uid || 'mobile-user'
       );
 
@@ -1238,6 +1249,9 @@ export default function ChatScreen({ navigation, route }) {
         incrementBookingCount().catch(console.error);
         const bk = result.booking;
         setCurrentBookingId(bk?.booking_id || bk?.bookingId);
+        if (result.trace_id) {
+          setActiveTraceId(result.trace_id);
+        }
 
         // Render booking card
         add({
@@ -1984,6 +1998,14 @@ export default function ChatScreen({ navigation, route }) {
               <Text style={s.sidebarNewChatText}>Naya Chat Shuru Karein</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity 
+              style={[s.sidebarNewChatBtn, { backgroundColor: '#F0F4FF', borderColor: '#D0E0FC', borderWidth: 1, marginBottom: 16 }]} 
+              onPress={() => { navigation.navigate('AgentTrace', { traceId: activeTraceId }); setHistoryVisible(false); }}
+            >
+              <Ionicons name="hardware-chip" size={18} color="#2F80ED" />
+              <Text style={[s.sidebarNewChatText, { color: '#2F80ED' }]}>Agent Trace Viewer 🔍</Text>
+            </TouchableOpacity>
+
             <ScrollView style={s.historyList} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {sessions.map((session) => {
                 const isActive = session.id === currentSessionId;
@@ -2023,25 +2045,11 @@ export default function ChatScreen({ navigation, route }) {
           </View>
         </View>
         <View style={s.headerRight}>
-          {locationStatus === 'granted' ? (
-            <View style={s.locBadge}>
-              <View style={s.locDotGreen} />
-              <Text style={s.locText}>GPS On</Text>
-            </View>
-          ) : locationStatus === 'denied' ? (
-            <TouchableOpacity style={s.locBadgeDenied} onPress={requestLocation}>
-              <Ionicons name="location-outline" size={12} color={C.warning} />
-              <Text style={s.locTextDenied}> Enable GPS</Text>
-            </TouchableOpacity>
-          ) : null}
-
-          <TouchableOpacity style={s.newChatBtn} onPress={startNewChat}>
-            <Ionicons name="add" size={16} color={C.primary} />
-            <Text style={s.traceBtnText}> New Chat</Text>
+          <TouchableOpacity style={s.headerIconBtn} onPress={() => navigation.navigate('AgentTrace', { traceId: activeTraceId })}>
+            <Ionicons name="hardware-chip" size={18} color="#2F80ED" />
           </TouchableOpacity>
-
-          <TouchableOpacity style={s.devBtn} onPress={() => navigation.navigate('AgentTrace')}>
-            <Text style={s.devBtnText}>🤖 Trace Logs</Text>
+          <TouchableOpacity style={s.headerIconBtnGreen} onPress={startNewChat}>
+            <Ionicons name="add" size={20} color={C.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -2138,17 +2146,26 @@ const s = StyleSheet.create({
     borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,213,79,0.2)',
   },
   locTextDenied: { color: C.warning, fontSize: 9, fontWeight: '600' },
-  newChatBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F0FFF4', borderWidth: 1, borderColor: C.border,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 14,
+  headerIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0F4FF',
+    borderWidth: 1,
+    borderColor: '#D0E0FC',
   },
-  traceBtnText: { color: C.primary, fontSize: 11, fontWeight: '600' },
-  devBtn: {
-    backgroundColor: '#F0F8FF', borderWidth: 1, borderColor: '#2196F3',
-    paddingHorizontal: 8, paddingVertical: 5, borderRadius: 12,
+  headerIconBtnGreen: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0FFF4',
+    borderWidth: 1,
+    borderColor: C.border,
   },
-  devBtnText: { color: '#2196F3', fontSize: 11, fontWeight: '700' },
 
   mainBodyRow: { flex: 1, flexDirection: 'row' },
   chatContainer: { flex: 2, height: '100%' },
