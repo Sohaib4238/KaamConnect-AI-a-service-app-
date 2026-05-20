@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+import LeafletMap from '../components/LeafletMap';
 import { useAuth } from '../context/AuthContext';
 import * as Location from 'expo-location';
 
@@ -356,27 +356,31 @@ export default function AddressScreen({ navigation, route }) {
 
             {showMap && (
               <View style={s.mapWrap}>
-                <MapView
+                <LeafletMap
+                  latitude={mapRegion.latitude}
+                  longitude={mapRegion.longitude}
+                  zoom={15}
+                  markerLat={selectedCoords?.latitude}
+                  markerLng={selectedCoords?.longitude}
                   style={s.map}
-                  region={mapRegion}
-                  onRegionChangeComplete={handleRegionChangeComplete}
-                  onPress={onMapPress}
-                  showsUserLocation={true}
-                  showsMyLocationButton={false}
-                >
-                  <UrlTile
-                    urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    maximumZ={19}
-                    flipY={false}
-                  />
-                  {selectedCoords && (
-                    <Marker
-                      coordinate={selectedCoords}
-                      title="Service location"
-                      pinColor="#00C853"
-                    />
-                  )}
-                </MapView>
+                  onMapPress={async (lat, lng) => {
+                    const coords = { latitude: lat, longitude: lng };
+                    setSelectedCoords(coords);
+                    setMapRegion(prev => ({ ...prev, latitude: lat, longitude: lng }));
+                    const results = await reverseGeocode(lat, lng);
+                    if (results && results.length > 0) {
+                      const formattedAddress = results[0].formatted_address;
+                      setReverseGeoAddress(formattedAddress);
+                      const components = results[0].address_components;
+                      const locality = components.find(c => c.types.includes('locality'))?.long_name;
+                      setNewAddress(prev => ({ ...prev, address: formattedAddress, city: locality || prev.city }));
+                      const sublocality_comp = components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
+                      const locality_comp = components.find(c => c.types.includes('locality'))?.long_name;
+                      const areaName = sublocality_comp ? `${sublocality_comp}, ${locality_comp}` : locality_comp;
+                      if (areaName) await AsyncStorage.setItem('userArea', areaName);
+                    }
+                  }}
+                />
                 <View style={s.mapHint}>
                   <Text style={s.mapHintText}>
                     Tap anywhere on map to adjust location

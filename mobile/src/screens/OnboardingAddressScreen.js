@@ -4,7 +4,7 @@ import {
   TextInput, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, UrlTile } from 'react-native-maps';
+import LeafletMap from '../components/LeafletMap';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -187,27 +187,31 @@ export default function OnboardingAddressScreen() {
           <View style={{width: 40}} />
         </View>
         
-        <MapView
-          ref={mapRef}
+        <LeafletMap
+          latitude={mapRegion.latitude}
+          longitude={mapRegion.longitude}
+          zoom={15}
+          markerLat={selectedCoords?.latitude}
+          markerLng={selectedCoords?.longitude}
           style={s.fullMap}
-          region={mapRegion}
-          onRegionChangeComplete={setMapRegion}
-          onPress={onMapPress}
-          showsUserLocation={true}
-        >
-          <UrlTile
-            urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            maximumZ={19}
-            flipY={false}
-          />
-          {selectedCoords && (
-            <Marker
-              coordinate={selectedCoords}
-              title="Your location"
-              pinColor="#00C853"
-            />
-          )}
-        </MapView>
+          onMapPress={async (lat, lng) => {
+            const coords = { latitude: lat, longitude: lng };
+            setSelectedCoords(coords);
+            try {
+              const [place] = await Location.reverseGeocodeAsync(coords);
+              if (place) {
+                const addr = [
+                  place.streetNumber, place.street, place.district
+                ].filter(Boolean).join(', ');
+                setDetectedAddress(addr);
+                setCity(place.city || 'Karachi');
+                setAddressDetail(addr);
+              }
+            } catch (e) {
+              console.log('Reverse geocode error:', e);
+            }
+          }}
+        />
         
         {/* Bottom sheet */}
         <View style={s.mapBottom}>
@@ -260,23 +264,16 @@ export default function OnboardingAddressScreen() {
         
         {/* Mini map preview */}
         {selectedCoords && (
-          <MapView
-            style={s.miniMap}
-            region={{ 
-              ...selectedCoords, 
-              latitudeDelta: 0.003, 
-              longitudeDelta: 0.003 
-            }}
+          <LeafletMap
+            latitude={selectedCoords.latitude}
+            longitude={selectedCoords.longitude}
+            zoom={16}
+            markerLat={selectedCoords.latitude}
+            markerLng={selectedCoords.longitude}
             scrollEnabled={false}
             zoomEnabled={false}
-          >
-            <UrlTile
-              urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              maximumZ={19}
-              flipY={false}
-            />
-            <Marker coordinate={selectedCoords} pinColor="#00C853" />
-          </MapView>
+            style={s.miniMap}
+          />
         )}
         
         {/* Label selection */}
