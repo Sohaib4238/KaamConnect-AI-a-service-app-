@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KaamConnect - AI-Powered Service Orchestrator</title>
+  <style>
+    /* Google Fonts for premium typography */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --primary: #005F43; /* Rich Pakistani green */
+      --secondary: #1F3F32;
+      --accent: #E6F3EE;
+      --text: #2C3E35;
+      --light-text: #607268;
+      --border: #CFDDD6;
+      --bg: #F4F7F5;
+      --card-bg: #FFFFFF;
+      --shadow: 0 4px 12px rgba(0, 95, 67, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      background-color: var(--bg);
+      line-height: 1.6;
+      padding: 40px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 60px;
+      box-shadow: var(--shadow);
+    }
+
+    /* Print styling rules */
+    @media print {
+      body {
+        background-color: #FFF;
+        padding: 0;
+      }
+      .container {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+      .no-print {
+        display: none;
+      }
+      a {
+        text-decoration: none;
+        color: var(--text);
+      }
+    }
+
+    /* Navigation header for browser viewing */
+    .no-print-header {
+      background-color: var(--primary);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+    }
+    .no-print-header h4 {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .btn-print {
+      background-color: #FFFFFF;
+      color: var(--primary);
+      border: none;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+    .btn-print:hover {
+      background-color: var(--accent);
+    }
+
+    /* Cover Page */
+    .cover {
+      text-align: center;
+      padding: 80px 0;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 50px;
+    }
+    .badge {
+      display: inline-block;
+      background-color: var(--accent);
+      color: var(--primary);
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 24px;
+    }
+    .title {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+    .subtitle {
+      font-size: 1.4rem;
+      color: var(--light-text);
+      font-weight: 400;
+      margin-bottom: 40px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      max-width: 500px;
+      margin: 40px auto 0 auto;
+      text-align: left;
+      font-size: 0.9rem;
+      background-color: var(--bg);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .meta-item strong {
+      display: block;
+      color: var(--primary);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Section Styles */
+    h2 {
+      font-size: 1.8rem;
+      color: var(--primary);
+      margin-top: 40px;
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 1.5px solid var(--border);
+    }
+    h3 {
+      font-size: 1.25rem;
+      color: var(--secondary);
+      margin-top: 24px;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    p {
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    ul, ol {
+      margin-left: 20px;
+      margin-bottom: 20px;
+    }
+    li {
+      margin-bottom: 8px;
+    }
+
+    /* Process Flow */
+    .flow-diagram {
+      background-color: #121A16;
+      color: #7BE39D;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 24px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      overflow-x: auto;
+      margin-bottom: 24px;
+      border: 1px solid #1F3F32;
+    }
+
+    /* Code blocks */
+    pre, code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+    }
+    pre {
+      background-color: #F7FAF8;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      margin-bottom: 20px;
+    }
+    code {
+      background-color: var(--accent);
+      color: var(--primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Info Alerts */
+    .alert {
+      background-color: var(--accent);
+      border-left: 4px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 24px;
+    }
+    .alert strong {
+      color: var(--primary);
+    }
+
+    /* Cards Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background-color: #FAFCFB;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .card h4 {
+      color: var(--primary);
+      font-size: 1.05rem;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    /* Footer */
+    .doc-footer {
+      text-align: center;
+      margin-top: 60px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--light-text);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Browser print button -->
+  <div class="no-print no-print-header">
+    <h4>📄 KaamConnect Submission Guide - Ready for Print</h4>
+    <button class="btn-print" onclick="window.print()">Save to PDF</button>
+  </div>
+
+  <div class="container">
+    
+    <!-- Cover Page -->
+    <div class="cover">
+      <span class="badge">Google Antigravity Hackathon 2026</span>
+      <h1 class="title">🇵🇰 KaamConnect (کام کنیکٹ)</h1>
+      <div class="subtitle">AI-Powered Service Orchestrator for the Informal Economy</div>
+      
+      <p style="max-width: 600px; margin: 0 auto 20px auto; font-size: 1.1rem; color: var(--light-text);">
+        An autonomous, location-aware Multi-Agent platform bridging the digital divide for blue-collar professionals in Pakistan.
+      </p>
+
+      <div class="meta-grid">
+        <div class="meta-item">
+          <strong>Built With</strong>
+          React Native Expo & Node.js
+        </div>
+        <div class="meta-item">
+          <strong>AI Models Used</strong>
+          Groq LLaMA 3.3 70B
+        </div>
+        <div class="meta-item">
+          <strong>Developer Assistant</strong>
+          Google Antigravity
+        </div>
+        <div class="meta-item">
+          <strong>Submission Date</strong>
+          May 20, 2026
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1: Overview -->
+    <div class="page-break">
+      <h2>🚀 Vision & Challenge Overview</h2>
+      <p>
+        In developing countries like Pakistan, the vast informal service economy—comprising plumbers, electricians, AC technicians, cleaners, and beauticians—operates entirely through unorganized channels like conversational WhatsApp chats, calls, and word-of-mouth. This results in:
+      </p>
+      <ul>
+        <li><strong>Inefficient service matching</strong> and lost daily wages for blue-collar workers.</li>
+        <li><strong>A lack of automation</strong> and difficulty booking reliable help at transparent rates.</li>
+        <li><strong>Poor user experience</strong> for clients struggling to find nearby, trusted, and available providers.</li>
+      </ul>
+      <p>
+        <strong>KaamConnect</strong> is a cutting-edge <strong>Agentic AI System</strong> that automates the end-to-end lifecycle of a service request. From parsing a natural language query in <strong>English, Urdu, or Roman Urdu</strong> to finding, ranking, booking, scheduling, and executing follow-ups—all simulated in real-time within an intuitive, premium mobile application.
+      </p>
+
+      <div class="alert">
+        <strong>💡 Key Innovation:</strong> Unlike conventional apps with complex form UI, KaamConnect allows users to talk in their natural dialect. It demystifies AI execution by streaming trace logs straight to their screen.
+      </div>
+    </div>
+
+    <!-- Section 2: Architecture -->
+    <div class="page-break">
+      <h2>📐 Overall Solution Design & Architecture</h2>
+      <p>
+        KaamConnect features a decoupled client-server architecture built to deliver real-time streaming telemetry and sub-second transaction routing.
+      </p>
+      
+      <div class="flow-diagram">
+┌────────────────────────────────────────────────────────┐
+│                   Expo Mobile Client                   │
+│   ┌──────────────────┐          ┌──────────────────┐   │
+│   │   UX/UI Screens  │◄────────►│ LeafletWebView   │   │
+│   └────────┬─────────┘          └──────────────────┘   │
+└────────────┼───────────────────────────────────────────┘
+             │                               
+             │ HTTP REST (Auth, Coordinates, Bookings)
+             │ WebSocket (Real-time AI Trace Streaming)
+             ▼                               
+┌────────────────────────────────────────────────────────┐
+│                   Express API Server                   │
+│   ┌────────────────────────────────────────────────┐   │
+│   │           Antigravity Orchestrator             │   │
+│   │  (Manages multi-agent sequential pipeline)     │   │
+│   └──────┬───────────────┬──────────────────┬──────┘   │
+└──────────┼───────────────┼──────────────────┼──────────┘
+             │               │                  │
+             ▼               ▼                  ▼
+┌──────────────────┐┌──────────────┐┌──────────────────┐
+│  Groq Cloud LLM  ││  Google Maps ││Firebase Firestore│
+│ (Llama 3.3 Auth) ││  (Geocode)   ││   (Live State)   │
+└──────────────────┘└──────────────┘└──────────────────┘
+      </div>
+
+      <h3>Overall Flow Sequence</h3>
+      <ol>
+        <li><strong>Input Parsing:</strong> The client sends conversational Roman Urdu text over WebSockets to the Node backend.</li>
+        <li><strong>Agentic Execution:</strong> The backend orchestrator starts a step-by-step reasoning cycle across five specialized agents.</li>
+        <li><strong>WebSocket Telemetry:</strong> प्रोसेस execution logs (trace metrics) are streamed back to the client instantly.</li>
+        <li><strong>State Update:</strong> When a provider matches, bookings are written to Firestore, reflecting on the client screen.</li>
+      </ol>
+    </div>
+
+    <!-- Section 3: Developed AI Agents -->
+    <div class="page-break">
+      <h2>🤖 Developed AI Agents</h2>
+      <p>
+        The backend engine features five highly specialized, autonomous agents that manage distinct phases of the lifecycle:
+      </p>
+
+      <div class="grid">
+        <div class="card">
+          <h4>1. Intent Parser Agent</h4>
+          <p>Extracts core details from unstructured Urdu, Roman Urdu, or English queries. Outlines <code>service_type</code>, <code>location</code>, and <code>time_preference</code>.</p>
+        </div>
+        <div class="card">
+          <h4>2. Discovery Agent</h4>
+          <p>Executes coordinate queries around the parsed location using geocoding engines, returning matching local providers within a 5km radius.</p>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h4>3. Matching Agent</h4>
+          <p>Orders candidate providers based on score, physical distance matrices, ratings, and time-slot compatibility, selecting the top provider.</p>
+        </div>
+        <div class="card">
+          <h4>4. Booking Agent</h4>
+          <p>Handles transactional generation, formats local dates in Pakistan Standard Time (PKT), and persists state to Firestore.</p>
+        </div>
+      </div>
+
+      <div class="card" style="width: 100%;">
+        <h4>5. Follow-Up Agent</h4>
+        <p>Manages background notification reminders (1 hour prior to appointment) and triggers simulated post-completion checklists for quality audits.</p>
+      </div>
+    </div>
+
+    <!-- Section 4: Live Tracing Example -->
+    <div class="page-break">
+      <h2>📝 End-to-End Trace Logs Example</h2>
+      <p>
+        When the user enters: <strong>"Mujhe kal subah Clifton Block 5 mein AC technician chahiye"</strong>, the orchestrator outputs:
+      </p>
+      
+      <pre>{
+  "Intent_Parser": {
+    "service_type": "AC_REPAIR",
+    "location": "Clifton Block 5, Karachi",
+    "time_preference": "Tomorrow Morning",
+    "language": "Roman Urdu"
+  },
+  "Discovery_Agent": {
+    "coordinates": { "lat": 24.8138, "lng": 67.0336 },
+    "candidates_found": 2,
+    "top_provider": "Siddiqui AC & Cooling"
+  },
+  "Matching_Agent": {
+    "distance": "0.8 km",
+    "rating": 4.9,
+    "rationale": "Siddiqui AC & Cooling matches all criteria perfectly."
+  },
+  "Booking_Agent": {
+    "booking_id": "BK-1716301295",
+    "status": "confirmed",
+    "scheduled_slot": "2026-05-21T10:00:00.000Z"
+  }
+}</pre>
+    </div>
+
+    <!-- Section 5: The Role of Google Antigravity -->
+    <div class="page-break">
+      <h2>📡 The Role of Google Antigravity</h2>
+      <p>
+        <strong>Google Antigravity</strong> served as our core architectural pair-programmer and system debugger.
+      </p>
+      <h3>Core Engineering Contributions:</h3>
+      <ul>
+        <li><strong>decopuling Multi-Agent Architecture:</strong> Designed clean, strict contracts and sequence layers for all 5 specialized agents.</li>
+        <li><strong>WebView Map Fallbacks:</strong> Engineered a custom, keyless <strong>Leaflet + OpenStreetMap</strong> interactive mapping frame using native WebViews, bypassing native Google MapView rendering limitations on standalone APK builds.</li>
+        <li><strong>Timezone & GPS Speed Optimizations:</strong> Built robust local timezone handling for Pakistani Standard Time (PKT) and optimized coordinates lock speeds down to under 0.5 seconds.</li>
+      </ul>
+    </div>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+      <p>KaamConnect Portfolio & Submission Guide • Created via Google Antigravity • All Rights Reserved 2026</p>
+    </div>
+
+  </div>
+
+</body>
+</html>
