@@ -10,14 +10,24 @@ let db = null;
 let messaging = null;
 
 try {
-  // Service account is expected to be in /backend/service-account.json
-  const serviceAccountPath = path.resolve(__dirname, '../../service-account.json');
+  let serviceAccount = null;
 
-  if (!fs.existsSync(serviceAccountPath)) {
-    console.warn(`[Firebase] service-account.json not found at ${serviceAccountPath}. Firebase features will fail.`);
+  // 1. Check if the JSON is in the environment variables (for cloud hosts like Railway)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    console.log('[Firebase] Loading credential from environment variable');
   } else {
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+    // 2. Fall back to local file path (for local development)
+    const serviceAccountPath = path.resolve(__dirname, '../../service-account.json');
+    if (fs.existsSync(serviceAccountPath)) {
+      serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+      console.log('[Firebase] Loading credential from local service-account.json');
+    }
+  }
 
+  if (!serviceAccount) {
+    console.warn('[Firebase] No service account credentials found. Firebase features will fail.');
+  } else {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: 'kaamconnect-496410'
