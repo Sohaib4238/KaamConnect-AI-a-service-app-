@@ -16,6 +16,36 @@ This results in:
 
 ---
 
+## 📱 Core Application Functions & Screens
+
+KaamConnect is not just an AI interface; it is a fully realized, responsive mobile experience. The application features **20 specialized screens and functional modules** designed for seamless user interaction:
+
+### 1. 🔐 User Authentication & Onboarding
+*   **Welcome Screen (`WelcomeScreen.js`):** A visually compelling introduction displaying the app's mission to uplift informal workers.
+*   **Secure Authentication (`AuthScreen.js`):** Supports secure phone number authentication and mock social logins.
+*   **Onboarding Location Picker (`OnboardingAddressScreen.js`):** Requests foreground permission and immediately allows users to mark their home base using our custom interactive map.
+
+### 2. 🏠 Discovery, Categories & Providers
+*   **Dynamic Home Screen (`HomeScreen.js`):** Rich, premium landing page featuring active bookings, recent services, promo cards, a universal conversational search bar, and grid categories.
+*   **Service Category Explorer (`HomeServicesScreen.js`):** Browse specialized domains like AC Maintenance, Electrical, Plumbing, Cleaning, and Personal Care.
+*   **Discovery Map & List (`ProvidersListScreen.js` / `ProvidersScreen.js`):** Automatically maps nearby providers detected by the Discovery Agent with distances, ratings, and rates.
+*   **Provider Profile Screen (`ProviderMenuScreen.js`):** Detailed menus for selected technicians, including user reviews, pricing guidelines, past works, and quick-booking CTAs.
+
+### 3. 💬 Conversational Core (Agent Chat)
+*   **Conversational Agent Chat (`ChatScreen.js`):** The primary interaction screen supporting conversational English, pure Urdu, and Roman Urdu. It instantly accepts complex natural language prompts.
+*   **Live Antigravity Telemetry (`AgentTraceScreen.js`):** Displays real-time streaming WebSockets logs directly from the Antigravity backend, showing the user exactly what each agent (Intent, Discovery, Matcher) is doing at every step.
+
+### 4. 🗺️ Location & Booking Automation
+*   **Interactive Leaflet Map (`AddressScreen.js`):** Uses an ultra-fast, keyless **Leaflet + OpenStreetMap** engine embedded via native WebViews. Supports manual pin-dropping, immediate coordinate mapping, and non-blocking reverse-geocoding fallbacks.
+*   **Timezone-Aware Scheduling (`CheckoutScreen.js`):** Eliminates time-shifting bugs. Correctly formats local Pakistan Standard Time (PKT, UTC+5) time slots, highlighting "Today" and "Tomorrow" booking targets.
+*   **Booking Receipts (`BookingConfirmedScreen.js` / `BookingSuccessScreen.js`):** Dynamically outputs verified booking codes, assigned technicians, billing summaries, and scheduling states.
+
+### 5. 📋 Booking Management & User Profile
+*   **Active Requests Tracker (`ActiveRequestsScreen.js` / `BookingsScreen.js`):** Displays progress updates, live provider tracking, and statuses for ongoing works.
+*   **Profile & Customization (`ProfileScreen.js` / `SettingsScreen.js`):** Manage contact numbers, preferred languages, and application parameters.
+
+---
+
 ## 🧠 System Architecture & Multi-Agent Pipeline
 
 The core backend of KaamConnect is built around a structured **Multi-Agent pipeline** that plans, decides, executes, and schedules reminders. Each step is fully autonomous, communicating via standard JSON contracts.
@@ -39,11 +69,11 @@ graph TD
 ```
 
 ### The 5 Core Specialized Agents:
-1.  **Intent Parser Agent (`intentAgent.js`):** Processes highly conversational natural language (e.g., *"Mujhe kal subah G-13 mein AC technician chahiye"*). It extracts service category, target location, and preferred time window while identifying the input language.
-2.  **Discovery Agent (`discoveryAgent.js`):** Integrates with Google Maps/Places API and local provider databases to fetch geo-coordinates and identify candidates within a realistic service radius.
-3.  **Matching & Ranking Agent (`matchingAgent.js`):** Scores candidates based on distance matrices, real-time slot availability, and service history/ratings. It outputs the best provider with human-readable selection reasoning.
-4.  **Booking Agent (`bookingAgent.js`):** Simulates the transactional state change. It assigns an ID, formats dates, and records the booking to the central Firestore/SQLite database.
-5.  **Follow-Up Agent (`followUpAgent.js`):** Automatically schedules a simulated reminder (1 hour before service) and a post-service completion check message.
+1.  **Intent Parser Agent (`intentAgent.js`):** Processes conversational input (e.g., *"Clifton Block 5 me AC repair technician bheinjein"*). Extracts service category, location details, and time window.
+2.  **Discovery Agent (`discoveryAgent.js`):** Integrates with Google Maps/Places API and local provider databases to identify matching service candidates inside the designated Karachi sectors.
+3.  **Matching & Ranking Agent (`matchingAgent.js`):** Ranks providers using distance matrices, slot schedules, and rating histories. Highlights top candidates with custom human-readable selection reasons.
+4.  **Booking Agent (`bookingAgent.js`):** Simulates the transactional state change, generates invoice/estimate bounds, and writes transaction statuses to the central database.
+5.  **Follow-Up Agent (`followUpAgent.js`):** Automated background scheduling of 1-hour pre-appointment reminders and completion feedback loops.
 
 ---
 
@@ -55,7 +85,7 @@ graph TD
 Throughout the development lifecycle, **Google Antigravity** acted as the agentic pair programmer to:
 *   **Design & Implement the Multi-Agent Framework:** Set up clean separation of concerns across the 5 specialized agents.
 *   **Implement WebView-Based Map Rendering:** When native Google Maps SDK struggled to load tiles due to build-time environment constraints and device key restrictions, Antigravity designed a high-performance **Leaflet.js + OpenStreetMap (OSM)** WebView overlay. This guarantees that map tiles render instantly on 100% of physical and simulated Android devices without requiring credit cards or Google Cloud billing accounts.
-*   **Timezone-Aware Date Resolution:** Fixed time-shift bugs where Pakistani Standard Time (PST, UTC+5) queries after 7:00 PM caused bookings to skip to the next day due to default JavaScript UTC conversions.
+*   **Non-Blocking Geocoding Fallbacks:** Optimized manual and GPS location updates by pairing low-accuracy cached cellular lookups (returning in <0.5 seconds) with async reverse-geocoding calls. The map moves instantly, and the address resolves smoothly in the background.
 
 ### 2. Live Agent Tracing (`antigravity-trace.js`)
 All orchestration processes are wrapped and monitored through an Antigravity tracing context. The backend outputs strict tracing logs allowing real-time auditability:
@@ -77,29 +107,29 @@ All orchestration processes are wrapped and monitored through an Antigravity tra
 
 ---
 
-## 📝 End-to-End Agent Trace Logs (Example Execution)
+## 📝 End-to-End Agent Trace Logs (Example Execution - Karachi)
 
-When a user submits: **`"Mujhe kal subah G-13 mein AC technician chahiye"`**
+When a user submits: **`"Mujhe kal subah Clifton Block 5 mein AC technician chahiye"`**
 
 ### Step 1: Intent Extraction (Urdu/Roman Urdu -> Structured Data)
 ```json
 {
   "service_type": "AC_REPAIR",
-  "location": "G-13, Islamabad",
+  "location": "Clifton Block 5, Karachi",
   "time_preference": "Tomorrow Morning",
   "language_detected": "Roman Urdu",
-  "confidence": 0.98
+  "confidence": 0.99
 }
 ```
 
 ### Step 2: Provider Discovery
 ```json
 {
-  "geocoded_location": { "lat": 33.6339, "lng": 72.9897 },
+  "geocoded_location": { "lat": 24.8138, "lng": 67.0336 },
   "total_providers_found": 3,
   "candidates": [
-    { "name": "Ali AC Services", "lat": 33.6450, "lng": 72.9920, "rating": 4.8 },
-    { "name": "Khan AC & Refrigerator", "lat": 33.6210, "lng": 72.9750, "rating": 4.2 }
+    { "name": "Siddiqui AC & Cooling", "lat": 24.8190, "lng": 67.0392, "rating": 4.9 },
+    { "name": "Karachi Repair Works", "lat": 24.8050, "lng": 67.0250, "rating": 4.3 }
   ]
 }
 ```
@@ -108,12 +138,12 @@ When a user submits: **`"Mujhe kal subah G-13 mein AC technician chahiye"`**
 ```json
 {
   "top_pick": {
-    "provider_id": "PROV-882",
-    "name": "Ali AC Services",
-    "distance_km": 1.2,
-    "score": 9.6,
-    "price_range": "PKR 2,000 - 3,000",
-    "reasoning": "Ali AC Services is the closest qualified provider (1.2 km away) with a high customer satisfaction rating (4.8 stars) and verified morning slot availability."
+    "provider_id": "PROV-912",
+    "name": "Siddiqui AC & Cooling",
+    "distance_km": 0.8,
+    "score": 9.8,
+    "price_range": "PKR 1,500 - 2,500",
+    "reasoning": "Siddiqui AC & Cooling is the top matching provider, located just 0.8 km away in Clifton. They hold a 4.9-star customer rating and have active slot availability for tomorrow morning."
   }
 }
 ```
@@ -122,11 +152,11 @@ When a user submits: **`"Mujhe kal subah G-13 mein AC technician chahiye"`**
 A real document is written to the **Firestore Database**:
 ```json
 {
-  "booking_id": "BK-1716301295",
-  "provider_id": "PROV-882",
+  "booking_id": "BK-288301284",
+  "provider_id": "PROV-912",
   "status": "confirmed",
   "scheduled_slot": "2026-05-21T10:00:00.000Z",
-  "price_estimate": "PKR 2,500"
+  "price_estimate": "PKR 1,800"
 }
 ```
 
@@ -134,7 +164,7 @@ A real document is written to the **Firestore Database**:
 ```json
 {
   "reminder_time": "2026-05-21T09:00:00.000Z",
-  "reminder_message": "KaamConnect: Your technician from Ali AC Services is scheduled to arrive in 1 hour (10:00 AM).",
+  "reminder_message": "KaamConnect: Your technician from Siddiqui AC & Cooling is scheduled to arrive in 1 hour (10:00 AM).",
   "status_check_time": "2026-05-21T12:00:00.000Z"
 }
 ```
@@ -154,7 +184,7 @@ A real document is written to the **Firestore Database**:
 
 ## 📍 Assumptions & Limitations
 
-1.  **Mock Provider Dataset:** Provider availability schedules, prices, and ratings are loaded from a robust mock database tailored to Pakistan's urban centers (Islamabad, Karachi).
+1.  **Mock Provider Dataset:** Provider availability schedules, prices, and ratings are loaded from a robust mock database tailored to Karachi's urban sectors (Clifton, Gulshan-e-Iqbal, Defense, Tariq Road).
 2.  **Internet Requirement:** Because map tiles are loaded via OpenStreetMap CDN, the mobile app requires an active internet connection to load mapping visual aids.
 3.  **Authentication:** Simple phone or social login is simulated using Firebase Auth sandbox limits.
 
