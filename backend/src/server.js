@@ -32,7 +32,14 @@ let credentialsPath = '';
 if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
   try {
     const tempPath = path.resolve(__dirname, '../service-account-temp.json');
-    fs.writeFileSync(tempPath, process.env.FIREBASE_SERVICE_ACCOUNT_JSON, 'utf8');
+    const parsed = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    
+    // Normalize private key newlines
+    if (parsed.private_key) {
+      parsed.private_key = parsed.private_key.replace(/\\n/g, '\n');
+    }
+    
+    fs.writeFileSync(tempPath, JSON.stringify(parsed, null, 2), 'utf8');
     credentialsPath = tempPath;
     console.log('[Credentials] Successfully generated runtime service-account-temp.json from env variable');
   } catch (err) {

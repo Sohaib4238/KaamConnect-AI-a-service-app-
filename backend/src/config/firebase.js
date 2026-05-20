@@ -33,6 +33,11 @@ try {
   if (!serviceAccount) {
     console.warn('[Firebase] No service account credentials found. Firebase features will fail.');
   } else {
+    // Normalize private key newlines
+    if (serviceAccount.private_key) {
+      serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+    }
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       projectId: 'kaamconnect-496410'
