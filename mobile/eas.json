@@ -1,18 +1,18 @@
 {
   "cli": {
-    "version": ">= 9.0.0"
+    "version": ">= 3.0.0"
   },
   "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
     "preview": {
-      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "production": {
       "android": {
         "buildType": "apk"
       }
-    },
-    "production": {}
+    }
   }
 }
