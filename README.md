@@ -16,94 +16,94 @@ This results in:
 
 ---
 
-## 📱 Core Application Functions & Screens
+## 📐 Overall Solution Design & Architecture
 
-KaamConnect is not just an AI interface; it is a fully realized, responsive mobile experience. The application features **20 specialized screens and functional modules** designed for seamless user interaction:
+KaamConnect uses a decoupled **Client-Server Architecture** designed to facilitate real-time streaming telemetry of multi-agent execution steps.
 
-### 1. 🔐 User Authentication & Onboarding
-*   **Welcome Screen (`WelcomeScreen.js`):** A visually compelling introduction displaying the app's mission to uplift informal workers.
-*   **Secure Authentication (`AuthScreen.js`):** Supports secure phone number authentication and mock social logins.
-*   **Onboarding Location Picker (`OnboardingAddressScreen.js`):** Requests foreground permission and immediately allows users to mark their home base using our custom interactive map.
+```
+┌────────────────────────────────────────────────────────┐
+│                   Expo Mobile Client                   │
+│   ┌──────────────────┐          ┌──────────────────┐   │
+│   │   UX/UI Screens  │◄────────►│ LeafletWebView   │   │
+│   └────────┬─────────┘          └──────────────────┘   │
+└────────────┼───────────────────────────────────────────┘
+             │                               
+             │ HTTP REST (Auth, Coordinates, Manual Bookings)
+             │ WebSocket (Real-time AI Trace Streaming)
+             ▼                               
+┌────────────────────────────────────────────────────────┐
+│                   Express API Server                   │
+│   ┌────────────────────────────────────────────────┐   │
+│   │           Antigravity Orchestrator             │   │
+│   │  (Manages multi-agent sequential pipeline)     │   │
+│   └──────┬───────────────┬──────────────────┬──────┘   │
+└──────────┼───────────────┼──────────────────┼──────────┘
+           │               │                  │
+           ▼               ▼                  ▼
+┌──────────────────┐┌──────────────┐┌──────────────────┐
+│  Groq Cloud LLM  ││  Google Maps ││Firebase Firestore│
+│ (Llama 3.3 Auth) ││  (Geocode)   ││   (Live State)   │
+└──────────────────┘└──────────────┘└──────────────────┘
+```
 
-### 2. 🏠 Discovery, Categories & Providers
-*   **Dynamic Home Screen (`HomeScreen.js`):** Rich, premium landing page featuring active bookings, recent services, promo cards, a universal conversational search bar, and grid categories.
-*   **Service Category Explorer (`HomeServicesScreen.js`):** Browse specialized domains like AC Maintenance, Electrical, Plumbing, Cleaning, and Personal Care.
-*   **Discovery Map & List (`ProvidersListScreen.js` / `ProvidersScreen.js`):** Automatically maps nearby providers detected by the Discovery Agent with distances, ratings, and rates.
-*   **Provider Profile Screen (`ProviderMenuScreen.js`):** Detailed menus for selected technicians, including user reviews, pricing guidelines, past works, and quick-booking CTAs.
-
-### 3. 💬 Conversational Core (Agent Chat)
-*   **Conversational Agent Chat (`ChatScreen.js`):** The primary interaction screen supporting conversational English, pure Urdu, and Roman Urdu. It instantly accepts complex natural language prompts.
-*   **Live Antigravity Telemetry (`AgentTraceScreen.js`):** Displays real-time streaming WebSockets logs directly from the Antigravity backend, showing the user exactly what each agent (Intent, Discovery, Matcher) is doing at every step.
-
-### 4. 🗺️ Location & Booking Automation
-*   **Interactive Leaflet Map (`AddressScreen.js`):** Uses an ultra-fast, keyless **Leaflet + OpenStreetMap** engine embedded via native WebViews. Supports manual pin-dropping, immediate coordinate mapping, and non-blocking reverse-geocoding fallbacks.
-*   **Timezone-Aware Scheduling (`CheckoutScreen.js`):** Eliminates time-shifting bugs. Correctly formats local Pakistan Standard Time (PKT, UTC+5) time slots, highlighting "Today" and "Tomorrow" booking targets.
-*   **Booking Receipts (`BookingConfirmedScreen.js` / `BookingSuccessScreen.js`):** Dynamically outputs verified booking codes, assigned technicians, billing summaries, and scheduling states.
-
-### 5. 📋 Booking Management & User Profile
-*   **Active Requests Tracker (`ActiveRequestsScreen.js` / `BookingsScreen.js`):** Displays progress updates, live provider tracking, and statuses for ongoing works.
-*   **Profile & Customization (`ProfileScreen.js` / `SettingsScreen.js`):** Manage contact numbers, preferred languages, and application parameters.
+### Overall System Flow:
+1.  **Input & Intent:** The user types or speaks a request in Urdu or Roman Urdu into the **Chat Screen**. This is transmitted via WebSockets to the server.
+2.  **Orchestration Loop:** The central **Antigravity Orchestration Engine** starts a step-by-step reasoning cycle. As each agent operates, detailed process execution logs (trace metadata) are streamed back to the client over WebSockets in real time.
+3.  **Visual Feedback:** The client renders these execution traces in a dedicated **Agent Trace Screen**, showing the user exactly which agent is making decisions, calling APIs, or validating results.
+4.  **Transaction & Mapping:** Once matched, a location pin is dropped onto an interactive mapping display, and transaction schemas are persisted in Firestore, updating the client's booking tab instantly.
 
 ---
 
-## 🧠 System Architecture & Multi-Agent Pipeline
+## 🤖 Developed AI Agents
 
-The core backend of KaamConnect is built around a structured **Multi-Agent pipeline** that plans, decides, executes, and schedules reminders. Each step is fully autonomous, communicating via standard JSON contracts.
+KaamConnect features **5 highly specialized, autonomous agents** that handle distinct components of the service request lifecycle. Each agent processes inputs, executes specialized rules or LLM calls, and outputs structured contracts:
 
-### Agent Workflow Diagram
+### 1. Intent Parser Agent (`intentAgent.js`)
+*   **Role:** Extracts the core details of the request from unstructured user prompts in English, Urdu, or Roman Urdu.
+*   **Input:** Conversation string (e.g. *"AC thik krwane k liye Clifton me kal dopahar koi chahiye"*).
+*   **Output:** Structured JSON schema highlighting:
+    -   `service_type` (e.g., `AC_REPAIR`, `ELECTRICIAN`, `PLUMBER`)
+    -   `location` (e.g., `Clifton, Karachi`)
+    -   `time_preference` (e.g., `Tomorrow Afternoon`)
+    -   `language_detected` & `confidence` parameters.
 
-```mermaid
-graph TD
-    A[User Query: Urdu / Roman Urdu / English] --> B[Intent Agent]
-    B -->|Parse: Service, Location, Time| C[Discovery Agent]
-    C -->|Fetch: Google Maps API / Mock Data| D[Matching & Ranking Agent]
-    D -->|Score: Distance, Rating, Availability| E[Booking Agent]
-    E -->|Simulate Booking & Firestore Write| F[Follow-Up Agent]
-    F -->|Schedule: 1hr Reminders & Status Checks| G[User Notification / FCM]
-    
-    style B fill:#E8F5E9,stroke:#00C853,stroke-width:2px
-    style C fill:#E8F5E9,stroke:#00C853,stroke-width:2px
-    style D fill:#E3F2FD,stroke:#2196F3,stroke-width:2px
-    style E fill:#FFFDE7,stroke:#F57F17,stroke-width:2px
-    style F fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px
-```
+### 2. Discovery Agent (`discoveryAgent.js`)
+*   **Role:** Performs spatial searches and geocodes requested locations to find physical matches in the local vicinity.
+*   **Input:** Structured location string and service type from the Intent Agent.
+*   **Output:** Geo-coordinates (`lat`, `lng`) of the target location, paired with a collection of available matching service providers within a 5km radius.
 
-### The 5 Core Specialized Agents:
-1.  **Intent Parser Agent (`intentAgent.js`):** Processes conversational input (e.g., *"Clifton Block 5 me AC repair technician bheinjein"*). Extracts service category, location details, and time window.
-2.  **Discovery Agent (`discoveryAgent.js`):** Integrates with Google Maps/Places API and local provider databases to identify matching service candidates inside the designated Karachi sectors.
-3.  **Matching & Ranking Agent (`matchingAgent.js`):** Ranks providers using distance matrices, slot schedules, and rating histories. Highlights top candidates with custom human-readable selection reasons.
-4.  **Booking Agent (`bookingAgent.js`):** Simulates the transactional state change, generates invoice/estimate bounds, and writes transaction statuses to the central database.
-5.  **Follow-Up Agent (`followUpAgent.js`):** Automated background scheduling of 1-hour pre-appointment reminders and completion feedback loops.
+### 3. Matching & Ranking Agent (`matchingAgent.js`)
+*   **Role:** Scores and orders discovered providers based on a multi-criteria decision algorithm.
+*   **Input:** List of nearby candidate providers, geocoded user coordinates, and specific time constraints.
+*   **Output:** Calculated distance matrix results, ratings, and time-slot compatibility checks, culminating in a `top_pick` selection complete with human-readable rationale (e.g., *"Selected Siddiqui AC Services because they are closest [0.8km] and have a 4.9-star rating"*).
+
+### 4. Booking Agent (`bookingAgent.js`)
+*   **Role:** Handles transactional generation and mock state persistence.
+*   **Input:** Selected provider details, user profile, time-slot preferences, and target area names.
+*   **Output:** Generates a randomized transaction tracking code (e.g., `BK-1716301295`), computes a mock price estimate, formats local date slots, and updates the shared database state.
+
+### 5. Follow-Up Agent (`followUpAgent.js`)
+*   **Role:** Sets background notification reminders and feedback loops.
+*   **Input:** Finalized booking contract details.
+*   **Output:** Schedules background reminder jobs (exactly 1 hour prior to appointment) and post-completion checklist audits.
 
 ---
 
-## 📡 The Role of Google Antigravity
+## 🛠️ Integrations: Mock vs. Real APIs
 
-**Google Antigravity** is central to both the development, execution, and tracing of the system logic.
+To ensure the project remains highly resilient, scalable, and stable for a live hackathon demonstration, we carefully separated integrations into **Real APIs** (for production-grade external systems) and **Mock/Simulation Modules** (to ensure flawless, zero-downtime visual demonstrations).
 
-### 1. Development & Engineering Orchestration
-Throughout the development lifecycle, **Google Antigravity** acted as the agentic pair programmer to:
-*   **Design & Implement the Multi-Agent Framework:** Set up clean separation of concerns across the 5 specialized agents.
-*   **Implement WebView-Based Map Rendering:** When native Google Maps SDK struggled to load tiles due to build-time environment constraints and device key restrictions, Antigravity designed a high-performance **Leaflet.js + OpenStreetMap (OSM)** WebView overlay. This guarantees that map tiles render instantly on 100% of physical and simulated Android devices without requiring credit cards or Google Cloud billing accounts.
-*   **Non-Blocking Geocoding Fallbacks:** Optimized manual and GPS location updates by pairing low-accuracy cached cellular lookups (returning in <0.5 seconds) with async reverse-geocoding calls. The map moves instantly, and the address resolves smoothly in the background.
+### Real Production Integrations & APIs:
+*   **Google Maps Geocoding API:** Real API integration via `@googlemaps/google-maps-services-js`. Converts text-based addresses and colloquial sector names entered by users into accurate latitude and longitude coordinate matrices.
+*   **Groq Cloud LLM API (LLaMA 3.3 70B):** Production LLM backend engine. Executes zero-shot classification prompts for intent translation and generates natural conversational reasoning scripts under 300ms.
+*   **Expo Native Location Services:** Direct physical device GPS API integration via `expo-location`. Safely prompts users for foreground permissions to grab immediate device coordinate frames.
+*   **Firebase Firestore Database:** Production cloud database system. Tracks active user accounts, provider directories, and updates in real-time.
+*   **WebSockets API:** Full-duplex connection pipeline enabling streaming AI agent telemetry step-by-step from the node backend straight to the mobile client layout.
 
-### 2. Live Agent Tracing (`antigravity-trace.js`)
-All orchestration processes are wrapped and monitored through an Antigravity tracing context. The backend outputs strict tracing logs allowing real-time auditability:
-
-```javascript
-// Sample Output from the Antigravity Orchestrator
-╔═══════════════════════════════════════════╗
-║     GOOGLE ANTIGRAVITY ORCHESTRATOR       ║
-║     Platform: Google Antigravity           ║
-║     Model: LLaMA 3.3 70B (Groq)           ║
-║     Skills: 8 specialized agents           ║
-║     Tools: Maps, Firestore, FCM            ║
-╚═══════════════════════════════════════════╝
-  🔗 Trace: TR-1716301290382
-  🧩 Skills: intent-parser, provider-ranker, price-estimator, schedule-manager...
-  🔧 Tools: 6 Google tools integrated
-  📡 MCP: Firebase MCP Server, Google Maps MCP, Sequential Thinking MCP
-```
+### Mock & Simulated Systems (Optimized for Showcase):
+*   **OpenStreetMap (OSM) Tiles / Leaflet.js Mapping:** Bypasses Google's native MapView to guarantee flawless 100% tile rendering across physical devices without SDK key billing dependency. Uses keyless OSM WebViews for rendering.
+*   **FCM Reminder & Push Engine Simulation:** Schedules local mock background notifications representing 1-hour reminders and follow-up worker confirmation prompts.
+*   **Mock Local Provider Dataset:** A tailored database representing verified service professionals across Karachi's major sectors (Clifton, DHA, Gulshan-e-Iqbal, Tariq Road) complete with simulated pricing ranges, reviews, and dynamic schedule tables.
 
 ---
 
@@ -171,14 +171,63 @@ A real document is written to the **Firestore Database**:
 
 ---
 
-## 🛠️ APIs, Tools & Technologies Used
+## 📡 The Role of Google Antigravity
 
-*   **Mobile App Framework:** Expo SDK 54 / React Native.
-*   **Map Rendering:** Leaflet.js + OpenStreetMap (OSM) embedded via `react-native-webview` (Zero key restrictions, 100% uptime, lightning fast).
-*   **Geocoding Services:** Google Maps Geocoding API (`@googlemaps/google-maps-services-js`).
-*   **Agent LLM Engine:** LLaMA-3.3-70B via Groq Cloud (Ultra-low latency inference < 300ms, perfect for hackathons).
-*   **Database & Notification:** Firebase Firestore (live tracking) & Firebase Cloud Messaging (FCM).
-*   **Live Trace Streaming:** WebSockets (`ws`) transmitting live agent thought-patterns straight to the UI.
+**Google Antigravity** is central to both the development, execution, and tracing of the system logic.
+
+### 1. Development & Engineering Orchestration
+Throughout the development lifecycle, **Google Antigravity** acted as the agentic pair programmer to:
+*   **Design & Implement the Multi-Agent Framework:** Set up clean separation of concerns across the 5 specialized agents.
+*   **Implement WebView-Based Map Rendering:** When native Google Maps SDK struggled to load tiles due to build-time environment constraints and device key restrictions, Antigravity designed a high-performance **Leaflet.js + OpenStreetMap (OSM)** WebView overlay. This guarantees that map tiles render instantly on 100% of physical and simulated Android devices without requiring credit cards or Google Cloud billing accounts.
+*   **Non-Blocking Geocoding Fallbacks:** Optimized manual and GPS location updates by pairing low-accuracy cached cellular lookups (returning in <0.5 seconds) with async reverse-geocoding calls. The map moves instantly, and the address resolves smoothly in the background.
+
+### 2. Live Agent Tracing (`antigravity-trace.js`)
+All orchestration processes are wrapped and monitored through an Antigravity tracing context. The backend outputs strict tracing logs allowing real-time auditability:
+
+```javascript
+// Sample Output from the Antigravity Orchestrator
+╔═══════════════════════════════════════════╗
+║     GOOGLE ANTIGRAVITY ORCHESTRATOR       ║
+║     Platform: Google Antigravity           ║
+║     Model: LLaMA 3.3 70B (Groq)           ║
+║     Skills: 8 specialized agents           ║
+║     Tools: Maps, Firestore, FCM            ║
+╚═══════════════════════════════════════════╝
+  🔗 Trace: TR-1716301290382
+  🧩 Skills: intent-parser, provider-ranker, price-estimator, schedule-manager...
+  🔧 Tools: 6 Google tools integrated
+  📡 MCP: Firebase MCP Server, Google Maps MCP, Sequential Thinking MCP
+```
+
+---
+
+## 📱 Core Application Functions & Screens
+
+KaamConnect is not just an AI interface; it is a fully realized, responsive mobile experience. The application features **20 specialized screens and functional modules** designed for seamless user interaction:
+
+### 1. 🔐 User Authentication & Onboarding
+*   **Welcome Screen (`WelcomeScreen.js`):** A visually compelling introduction displaying the app's mission to uplift informal workers.
+*   **Secure Authentication (`AuthScreen.js`):** Supports secure phone number authentication and mock social logins.
+*   **Onboarding Location Picker (`OnboardingAddressScreen.js`):** Requests foreground permission and immediately allows users to mark their home base using our custom interactive map.
+
+### 2. 🏠 Discovery, Categories & Providers
+*   **Dynamic Home Screen (`HomeScreen.js`):** Rich, premium landing page featuring active bookings, recent services, promo cards, a universal conversational search bar, and grid categories.
+*   **Service Category Explorer (`HomeServicesScreen.js`):** Browse specialized domains like AC Maintenance, Electrical, Plumbing, Cleaning, and Personal Care.
+*   **Discovery Map & List (`ProvidersListScreen.js` / `ProvidersScreen.js`):** Automatically maps nearby providers detected by the Discovery Agent with distances, ratings, and rates.
+*   **Provider Profile Screen (`ProviderMenuScreen.js`):** Detailed menus for selected technicians, including user reviews, pricing guidelines, past works, and quick-booking CTAs.
+
+### 3. 💬 Conversational Core (Agent Chat)
+*   **Conversational Agent Chat (`ChatScreen.js`):** The primary interaction screen supporting conversational English, pure Urdu, and Roman Urdu. It instantly accepts complex natural language prompts.
+*   **Live Antigravity Telemetry (`AgentTraceScreen.js`):** Displays real-time streaming WebSockets logs directly from the Antigravity backend, showing the user exactly what each agent (Intent, Discovery, Matcher) is doing at every step.
+
+### 4. 🗺️ Location & Booking Automation
+*   **Interactive Leaflet Map (`AddressScreen.js`):** Uses an ultra-fast, keyless **Leaflet + OpenStreetMap** engine embedded via native WebViews. Supports manual pin-dropping, immediate coordinate mapping, and non-blocking reverse-geocoding fallbacks.
+*   **Timezone-Aware Scheduling (`CheckoutScreen.js`):** Eliminates time-shifting bugs. Correctly formats local Pakistan Standard Time (PKT, UTC+5) time slots, highlighting "Today" and "Tomorrow" booking targets.
+*   **Booking Receipts (`BookingConfirmedScreen.js` / `BookingSuccessScreen.js`):** Dynamically outputs verified booking codes, assigned technicians, billing summaries, and scheduling states.
+
+### 5. 📋 Booking Management & User Profile
+*   **Active Requests Tracker (`ActiveRequestsScreen.js` / `BookingsScreen.js`):** Displays progress updates, live provider tracking, and statuses for ongoing works.
+*   **Profile & Customization (`ProfileScreen.js` / `SettingsScreen.js`):** Manage contact numbers, preferred languages, and application parameters.
 
 ---
 
