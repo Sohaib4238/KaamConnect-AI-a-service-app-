@@ -35,7 +35,7 @@ export default function AddressScreen({ navigation, route }) {
   const [showMap, setShowMap] = useState(false);
   const [reverseGeoAddress, setReverseGeoAddress] = useState('');
 
-  const GOOGLE_MAPS_API_KEY = 'AIzaSyD4ar1JvuWVEgClUXjxW87KfpT3Sx9kfuA';
+  const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   const reverseGeocode = async (latitude, longitude) => {
     try {
