@@ -3,7 +3,7 @@ import { StatusBar, View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ChatScreen from './src/screens/ChatScreen';
 import ManualBookingScreen from './src/screens/ManualBookingScreen';
@@ -61,6 +61,7 @@ function AppNavigator() {
   const { user, loading, hasAddress } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
   const [showWelcome, setShowWelcome] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     AsyncStorage.getItem('has_seen_welcome').then(val => {
@@ -124,8 +125,8 @@ function AppNavigator() {
             backgroundColor: '#FFFFFF',
             borderTopColor: '#E4E5EF',
             borderTopWidth: 1,
-            height: 65,
-            paddingBottom: 8,
+            height: 60 + (insets.bottom > 0 ? insets.bottom : 8),
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
             paddingTop: 6,
           },
           tabBarLabelStyle: {

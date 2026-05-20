@@ -417,6 +417,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF', paddingHorizontal: 16,
     paddingVertical: 12, borderBottomWidth: 1,
     borderBottomColor: '#E4E5EF',
+    zIndex: 10, elevation: 2,
   },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,

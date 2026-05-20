@@ -2120,6 +2120,7 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 12,
     backgroundColor: C.headerBg, borderBottomWidth: 1, borderBottomColor: '#E4E5EF',
+    zIndex: 10, elevation: 2,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
   logoDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: C.primary, marginRight: 10 },
