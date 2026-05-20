@@ -23,6 +23,7 @@
           "locationWhenInUsePermission": "KaamConnect needs your location to find nearby service providers."
         }
       ],
+      "@react-native-google-signin/google-signin",
       "expo-web-browser"
     ],
     "ios": {
@@ -33,10 +34,6 @@
     },
     "android": {
       "package": "com.kaamconnect.app",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",

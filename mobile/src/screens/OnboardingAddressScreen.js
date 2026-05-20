@@ -4,7 +4,7 @@ import {
   TextInput, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, UrlTile } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -195,6 +195,11 @@ export default function OnboardingAddressScreen() {
           onPress={onMapPress}
           showsUserLocation={true}
         >
+          <UrlTile
+            urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maximumZ={19}
+            flipY={false}
+          />
           {selectedCoords && (
             <Marker
               coordinate={selectedCoords}
@@ -265,6 +270,11 @@ export default function OnboardingAddressScreen() {
             scrollEnabled={false}
             zoomEnabled={false}
           >
+            <UrlTile
+              urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maximumZ={19}
+              flipY={false}
+            />
             <Marker coordinate={selectedCoords} pinColor="#00C853" />
           </MapView>
         )}

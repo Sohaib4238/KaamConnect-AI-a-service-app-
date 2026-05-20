@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import MapView, { Marker, UrlTile } from 'react-native-maps';
 import { useAuth } from '../context/AuthContext';
 import * as Location from 'expo-location';
 
@@ -357,7 +357,6 @@ export default function AddressScreen({ navigation, route }) {
             {showMap && (
               <View style={s.mapWrap}>
                 <MapView
-                  provider={PROVIDER_GOOGLE}
                   style={s.map}
                   region={mapRegion}
                   onRegionChangeComplete={handleRegionChangeComplete}
@@ -365,6 +364,11 @@ export default function AddressScreen({ navigation, route }) {
                   showsUserLocation={true}
                   showsMyLocationButton={false}
                 >
+                  <UrlTile
+                    urlTemplate="https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    maximumZ={19}
+                    flipY={false}
+                  />
                   {selectedCoords && (
                     <Marker
                       coordinate={selectedCoords}
