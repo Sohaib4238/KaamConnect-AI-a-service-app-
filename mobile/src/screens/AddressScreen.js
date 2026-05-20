@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,6 +34,7 @@ export default function AddressScreen({ navigation, route }) {
   const [selectedCoords, setSelectedCoords] = useState(null);
   const [showMap, setShowMap] = useState(false);
   const [reverseGeoAddress, setReverseGeoAddress] = useState('');
+  const [locating, setLocating] = useState(false);
 
   const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyD4ar1JvuWVEgClUXjxW87KfpT3Sx9kfuA';
 
@@ -100,48 +101,42 @@ export default function AddressScreen({ navigation, route }) {
   };
 
   const getCurrentLocation = async () => {
+    setLocating(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      if (status !== 'granted') { setLocating(false); return; }
+
+      // Use Low accuracy for fast GPS fix (~1 sec vs 5+ sec)
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced
+        accuracy: Location.Accuracy.Low
       });
       const coords = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       };
+      // Show map IMMEDIATELY with the pin
       setSelectedCoords(coords);
-      setMapRegion({
-        ...coords,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      });
-      
-      const results = await reverseGeocode(coords.latitude, coords.longitude);
-      if (results && results.length > 0) {
-        const formattedAddress = results[0].formatted_address;
-        setReverseGeoAddress(formattedAddress);
-        
-        const components = results[0].address_components;
-        const locality = components.find(c => c.types.includes('locality'))?.long_name;
-        
-        setNewAddress(prev => ({ 
-          ...prev, 
-          address: formattedAddress,
-          city: locality || 'Karachi'
-        }));
-
-        // Store userArea
-        const sublocality_comp = components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
-        const locality_comp = components.find(c => c.types.includes('locality'))?.long_name;
-        const areaName = sublocality_comp ? `${sublocality_comp}, ${locality_comp}` : locality_comp;
-        if (areaName) {
-          await AsyncStorage.setItem('userArea', areaName);
-        }
-      }
+      setMapRegion({ ...coords, latitudeDelta: 0.005, longitudeDelta: 0.005 });
       setShowMap(true);
+      setLocating(false);
+
+      // Resolve address in background (non-blocking)
+      reverseGeocode(coords.latitude, coords.longitude).then(results => {
+        if (results && results.length > 0) {
+          const formattedAddress = results[0].formatted_address;
+          setReverseGeoAddress(formattedAddress);
+          const components = results[0].address_components;
+          const locality = components.find(c => c.types.includes('locality'))?.long_name;
+          setNewAddress(prev => ({ ...prev, address: formattedAddress, city: locality || 'Karachi' }));
+          const sublocality_comp = components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
+          const locality_comp = components.find(c => c.types.includes('locality'))?.long_name;
+          const areaName = sublocality_comp ? `${sublocality_comp}, ${locality_comp}` : locality_comp;
+          if (areaName) AsyncStorage.setItem('userArea', areaName);
+        }
+      });
     } catch (error) {
       console.error('[Map] Location error:', error);
+      setLocating(false);
     }
   };
 
@@ -363,11 +358,16 @@ export default function AddressScreen({ navigation, route }) {
 
             {/* Map picker */}
             <TouchableOpacity
-              style={s.mapPickerBtn}
-              onPress={getCurrentLocation}>
-              <Ionicons name="locate" size={18} color="#00C853" />
+              style={[s.mapPickerBtn, locating && { opacity: 0.7 }]}
+              onPress={getCurrentLocation}
+              disabled={locating}>
+              {locating ? (
+                <ActivityIndicator size="small" color="#00C853" />
+              ) : (
+                <Ionicons name="locate" size={18} color="#00C853" />
+              )}
               <Text style={s.mapPickerBtnText}>
-                📍 Use my current location
+                {locating ? 'Detecting location...' : '📍 Use my current location'}
               </Text>
             </TouchableOpacity>
 
