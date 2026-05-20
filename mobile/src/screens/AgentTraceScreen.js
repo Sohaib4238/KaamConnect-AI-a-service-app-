@@ -16,6 +16,7 @@ const BASE_URL_OPTIONS = [
 
 // Import from api.js
 import api from '../config/api';
+import { useAuth } from '../context/AuthContext';
 
 const AGENT_COLORS = {
   'intent-parser': { bg: '#DBEAFE', border: '#93C5FD', text: '#1D4ED8', dot: '#2563EB' },
@@ -52,6 +53,7 @@ const getToolColor = (tool) => {
 };
 
 export default function AgentTraceScreen({ navigation, route }) {
+  const { user } = useAuth();
   const [traces, setTraces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,7 +61,10 @@ export default function AgentTraceScreen({ navigation, route }) {
 
   const fetchTraces = useCallback(async () => {
     try {
-      const response = await api.get('/api/traces?limit=10');
+      const url = user?.uid 
+        ? `/api/traces?limit=10&user_id=${user.uid}` 
+        : '/api/traces?limit=10';
+      const response = await api.get(url);
       const data = response.data;
       if (data.success && data.traces) {
         setTraces(data.traces);
@@ -74,7 +79,7 @@ export default function AgentTraceScreen({ navigation, route }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user]);
 
   // Fetch when screen comes into focus
   useFocusEffect(
@@ -83,6 +88,14 @@ export default function AgentTraceScreen({ navigation, route }) {
       fetchTraces();
     }, [fetchTraces])
   );
+
+  // Clear and re-fetch immediately when the active user profile changes
+  useEffect(() => {
+    setTraces([]);
+    setExpandedTrace(null);
+    setLoading(true);
+    fetchTraces();
+  }, [user, fetchTraces]);
 
   // Also fetch if a specific traceId is passed
   useEffect(() => {

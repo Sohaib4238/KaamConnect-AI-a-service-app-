@@ -14,11 +14,12 @@ const api = axios.create({
 });
 
 // Stage 1: Discover providers (intent + discovery + ranking, NO booking)
-export const discoverProviders = async (message, userLocation = null) => {
+export const discoverProviders = async (message, userLocation = null, userId = 'mobile-user') => {
   const response = await api.post('/api/discover', {
     message,
     user_lat: userLocation?.lat || null,
-    user_lng: userLocation?.lng || null
+    user_lng: userLocation?.lng || null,
+    user_id: userId
   });
   return response.data;
 };

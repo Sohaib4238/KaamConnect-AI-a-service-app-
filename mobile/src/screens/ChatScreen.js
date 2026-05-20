@@ -946,7 +946,7 @@ export default function ChatScreen({ navigation, route }) {
       lng: savedAddress.longitude
     } : userLocation;
 
-    const result = await discoverProviders(enrichedText, locationToUse);
+    const result = await discoverProviders(enrichedText, locationToUse, user?.uid || 'mobile-user');
     drop(thinkId);
 
     if (result.status === 'needs_clarification') {

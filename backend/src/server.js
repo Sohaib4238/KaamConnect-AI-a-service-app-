@@ -87,7 +87,17 @@ app.get('/api/antigravity-info', (req, res) => {
 app.get('/api/traces', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
-    const snapshot = await db.collection('traces')
+    const userId = req.query.user_id;
+    
+    let query = db.collection('traces');
+    if (userId && userId !== 'undefined' && userId !== 'null' && userId !== '') {
+      query = query.where('user_id', '==', userId);
+    } else {
+      // Fallback for anonymous guest context: only show generic mobile-user traces, preventing leakage
+      query = query.where('user_id', '==', 'mobile-user');
+    }
+    
+    const snapshot = await query
       .orderBy('completed_at', 'desc')
       .limit(limit)
       .get();
@@ -103,9 +113,16 @@ app.get('/api/traces', async (req, res) => {
       traces 
     });
   } catch (error) {
-    // If orderBy fails due to missing index, fall back
+    // If orderBy fails due to missing index, fall back gracefully with programmatic sorting
     try {
-      const snapshot = await db.collection('traces')
+      const userId = req.query.user_id;
+      let query = db.collection('traces');
+      if (userId && userId !== 'undefined' && userId !== 'null' && userId !== '') {
+        query = query.where('user_id', '==', userId);
+      } else {
+        query = query.where('user_id', '==', 'mobile-user');
+      }
+      const snapshot = await query
         .limit(20)
         .get();
       const traces = snapshot.docs
@@ -262,7 +279,7 @@ app.post('/api/discover', async (req, res) => {
     const { parseIntent } = await import('./agents/intentAgent.js');
     const { discoverProviders } = await import('./agents/discoveryAgent.js');
     const { rankProviders } = await import('./agents/matchingAgent.js');
-    const { message, user_lat, user_lng } = req.body;
+    const { message, user_lat, user_lng, user_id } = req.body;
     if (!message) return res.status(400).json({ error: 'message required' });
 
     const traceId = 'TR-' + Date.now();
@@ -271,6 +288,7 @@ app.post('/api/discover', async (req, res) => {
     await db.collection('traces').doc(traceId).set({
       trace_id: traceId,
       user_input: message,
+      user_id: user_id || 'mobile-user',
       steps_completed: ['intent_parsing'],
       final_status: 'intent_parsed',
       total_duration_ms: 0,
