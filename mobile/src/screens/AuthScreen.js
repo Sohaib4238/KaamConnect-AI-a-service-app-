@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Platform, ScrollView, Alert
+  Platform, ScrollView, Alert, Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Mail, Lock, User, Phone, Eye, EyeOff } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -97,9 +100,13 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
+      {/* Decorative ambient background glows */}
+      <View style={s.circle1} />
+      <View style={s.circle2} />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}>
+        style={{ flex: 1, zIndex: 1 }}>
         <ScrollView
           contentContainerStyle={s.scroll}
           showsVerticalScrollIndicator={false}
@@ -110,7 +117,10 @@ export default function AuthScreen() {
             <View style={s.logoCircle}>
               <Text style={s.logoEmoji}>🔧</Text>
             </View>
-            <Text style={s.logoTitle}>KaamConnect</Text>
+            <Text style={s.logoTitle}>
+              <Text style={s.appNameDark}>Kaam</Text>
+              <Text style={s.appNameGreen}>Connect</Text>
+            </Text>
             <Text style={s.logoSub}>Professional services at your doorstep</Text>
           </View>
 
@@ -140,11 +150,11 @@ export default function AuthScreen() {
               <>
                 <Text style={s.label}>Full Name</Text>
                 <View style={s.inputWrap}>
-                  <Ionicons name="person-outline" size={18} color="#9999AA" style={s.inputIcon} />
+                  <User size={18} color="#8888AA" style={s.inputIcon} />
                   <TextInput
                     style={s.input}
                     placeholder="Ahmed Khan"
-                    placeholderTextColor="#BBBBCC"
+                    placeholderTextColor="#555570"
                     value={name}
                     onChangeText={setName}
                     autoCapitalize="words"
@@ -155,11 +165,11 @@ export default function AuthScreen() {
 
             <Text style={s.label}>Email Address</Text>
             <View style={s.inputWrap}>
-              <Ionicons name="mail-outline" size={18} color="#9999AA" style={s.inputIcon} />
+              <Mail size={18} color="#8888AA" style={s.inputIcon} />
               <TextInput
                 style={s.input}
                 placeholder="ahmed@example.com"
-                placeholderTextColor="#BBBBCC"
+                placeholderTextColor="#555570"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -172,11 +182,11 @@ export default function AuthScreen() {
               <>
                 <Text style={s.label}>Phone Number</Text>
                 <View style={s.inputWrap}>
-                  <Ionicons name="call-outline" size={18} color="#9999AA" style={s.inputIcon} />
+                  <Phone size={18} color="#8888AA" style={s.inputIcon} />
                   <TextInput
                     style={s.input}
                     placeholder="03xx-xxxxxxx"
-                    placeholderTextColor="#BBBBCC"
+                    placeholderTextColor="#555570"
                     value={phone}
                     onChangeText={setPhone}
                     keyboardType="phone-pad"
@@ -187,11 +197,11 @@ export default function AuthScreen() {
 
             <Text style={s.label}>Password</Text>
             <View style={s.inputWrap}>
-              <Ionicons name="lock-closed-outline" size={18} color="#9999AA" style={s.inputIcon} />
+              <Lock size={18} color="#8888AA" style={s.inputIcon} />
               <TextInput
                 style={[s.input, { flex: 1 }]}
                 placeholder="Min 6 characters"
-                placeholderTextColor="#BBBBCC"
+                placeholderTextColor="#555570"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -200,9 +210,11 @@ export default function AuthScreen() {
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 style={s.eyeBtn}>
-                <Ionicons
-                  name={showPassword ? "eye-off-outline" : "eye-outline"}
-                  size={18} color="#9999AA" />
+                {showPassword ? (
+                  <EyeOff size={18} color="#8888AA" />
+                ) : (
+                  <Eye size={18} color="#8888AA" />
+                )}
               </TouchableOpacity>
             </View>
 
@@ -210,11 +222,11 @@ export default function AuthScreen() {
               <>
                 <Text style={s.label}>Confirm Password</Text>
                 <View style={s.inputWrap}>
-                  <Ionicons name="lock-closed-outline" size={18} color="#9999AA" style={s.inputIcon} />
+                  <Lock size={18} color="#8888AA" style={s.inputIcon} />
                   <TextInput
                     style={[s.input, { flex: 1 }]}
                     placeholder="Re-enter password"
-                    placeholderTextColor="#BBBBCC"
+                    placeholderTextColor="#555570"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showPassword}
@@ -226,16 +238,23 @@ export default function AuthScreen() {
 
             {/* Main action button */}
             <TouchableOpacity
-              style={[s.authBtn, loading && s.authBtnDisabled]}
               onPress={handleAuth}
-              disabled={loading}>
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={s.authBtnText}>
-                  {mode === 'signup' ? 'Create Account' : 'Sign In'}
-                </Text>
-              )}
+              disabled={loading}
+              style={s.btnWrapper}
+              activeOpacity={0.85}>
+              <LinearGradient
+                colors={['#00C896', '#7B61FF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={s.authBtn}>
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={s.authBtnText}>
+                    {mode === 'signup' ? 'Create Account' : 'Sign In'}
+                  </Text>
+                )}
+              </LinearGradient>
             </TouchableOpacity>
 
             {/* Divider */}
@@ -249,9 +268,10 @@ export default function AuthScreen() {
             <TouchableOpacity
               style={[s.googleBtn, googleLoading && s.authBtnDisabled]}
               onPress={() => promptAsync()}
-              disabled={googleLoading || !request}>
+              disabled={googleLoading || !request}
+              activeOpacity={0.85}>
               {googleLoading ? (
-                <ActivityIndicator color="#555" />
+                <ActivityIndicator color="#F0F0F5" />
               ) : (
                 <>
                   <Text style={s.googleIcon}>G</Text>
@@ -281,88 +301,125 @@ export default function AuthScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#0A0A0F', overflow: 'hidden' },
   scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 40 },
+  circle1: {
+    position: 'absolute',
+    width: width * 0.9,
+    height: width * 0.9,
+    borderRadius: (width * 0.9) / 2,
+    backgroundColor: 'rgba(0, 200, 150, 0.05)',
+    top: -width * 0.35,
+    right: -width * 0.25,
+  },
+  circle2: {
+    position: 'absolute',
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: (width * 0.8) / 2,
+    backgroundColor: 'rgba(123, 97, 255, 0.05)',
+    bottom: -width * 0.2,
+    left: -width * 0.2,
+  },
   logoWrap: { alignItems: 'center', paddingTop: 40, paddingBottom: 32 },
   logoCircle: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'rgba(0, 200, 150, 0.08)',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 200, 150, 0.15)',
   },
   logoEmoji: { fontSize: 36 },
   logoTitle: {
-    fontSize: 28, fontWeight: '900',
-    color: '#1A1A2E', marginBottom: 6
+    fontSize: 28, fontWeight: '800',
+    color: '#F0F0F5', marginBottom: 6,
+    letterSpacing: -0.5,
   },
-  logoSub: { fontSize: 14, color: '#9999AA', textAlign: 'center' },
+  appNameDark: { color: '#F0F0F5', fontWeight: '800' },
+  appNameGreen: { color: '#00C896', fontWeight: '800' },
+  logoSub: { fontSize: 14, color: '#8888AA', textAlign: 'center' },
   toggleRow: {
     flexDirection: 'row',
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#111118',
     borderRadius: 14, padding: 4,
     marginBottom: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   toggleBtn: {
     flex: 1, paddingVertical: 12,
     borderRadius: 11, alignItems: 'center',
   },
-  toggleBtnActive: { backgroundColor: '#FFFFFF' },
-  toggleText: {
-    fontSize: 14, fontWeight: '600', color: '#9999AA'
+  toggleBtnActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  toggleTextActive: { color: '#1A1A2E', fontWeight: '800' },
+  toggleText: {
+    fontSize: 14, fontWeight: '600', color: '#8888AA'
+  },
+  toggleTextActive: { color: '#F0F0F5', fontWeight: '700' },
   form: { width: '100%' },
   label: {
-    fontSize: 13, fontWeight: '700',
-    color: '#555570', marginBottom: 6, marginTop: 14,
+    fontSize: 13, fontWeight: '600',
+    color: '#8888AA', marginBottom: 6, marginTop: 14,
   },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F8F9FC',
-    borderWidth: 1.5, borderColor: '#E4E5EF',
-    borderRadius: 12, paddingHorizontal: 14,
+    backgroundColor: '#16161F',
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14, paddingHorizontal: 14,
     paddingVertical: 12,
   },
   inputIcon: { marginRight: 10 },
   input: {
     flex: 1, fontSize: 15,
-    color: '#1A1A2E',
+    color: '#F0F0F5',
   },
   eyeBtn: { padding: 4 },
+  btnWrapper: {
+    marginTop: 24,
+    borderRadius: 50,
+    shadowColor: '#00C896',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 15,
+    elevation: 8,
+  },
   authBtn: {
-    backgroundColor: '#00C853',
-    borderRadius: 14, paddingVertical: 16,
-    alignItems: 'center', marginTop: 24,
+    borderRadius: 50, paddingVertical: 16,
+    alignItems: 'center',
   },
   authBtnDisabled: { opacity: 0.6 },
   authBtnText: {
-    color: '#FFFFFF', fontSize: 16, fontWeight: '800'
+    color: '#FFFFFF', fontSize: 16, fontWeight: '700'
   },
   dividerRow: {
     flexDirection: 'row', alignItems: 'center',
     marginVertical: 20,
   },
   dividerLine: {
-    flex: 1, height: 1, backgroundColor: '#E4E5EF'
+    flex: 1, height: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)'
   },
   dividerText: {
-    marginHorizontal: 12, color: '#9999AA', fontSize: 13
+    marginHorizontal: 12, color: '#8888AA', fontSize: 13
   },
   googleBtn: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5, borderColor: '#E4E5EF',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 14, paddingVertical: 14,
   },
   googleIcon: {
     fontSize: 18, fontWeight: '900',
-    color: '#4285F4', marginRight: 10,
+    color: '#F0F0F5', marginRight: 10,
   },
   googleBtnText: {
-    fontSize: 15, fontWeight: '700', color: '#1A1A2E'
+    fontSize: 15, fontWeight: '700', color: '#F0F0F5'
   },
   switchBtn: { alignItems: 'center', marginTop: 24 },
-  switchText: { fontSize: 14, color: '#9999AA' },
-  switchLink: { color: '#00C853', fontWeight: '800' },
+  switchText: { fontSize: 14, color: '#8888AA' },
+  switchLink: { color: '#00C896', fontWeight: '700' },
 });

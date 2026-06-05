@@ -1,18 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, RefreshControl, Alert
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Phone, XCircle, Bell, FileText, User, MapPin, Clock, CreditCard } from 'lucide-react-native';
 import { getBookings, cancelBooking, completeBooking } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const C = {
-  bg: '#F5F6FA', surface: '#F8F9FC', card: '#FFFFFF',
-  primary: '#00C853', text: '#1A1A2E', textSec: '#555570',
-  textMuted: '#9999AA', border: '#E4E5EF', headerBg: '#FFFFFF',
-  warning: '#FF9500', error: '#F44336', blue: '#2196F3',
+  bg: '#0A0A0F', surface: '#111118', card: '#16161F',
+  primary: '#00C896', text: '#F0F0F5', textSec: '#8888AA',
+  textMuted: '#555570', border: 'rgba(255, 255, 255, 0.08)', headerBg: '#0A0A0F',
+  warning: '#F5C842', error: '#FF5C5C', blue: '#7B61FF',
 };
 
 const STATUS_MAP = {
@@ -20,6 +27,13 @@ const STATUS_MAP = {
   in_progress: { label: '🟢 Service In Progress', color: C.primary },
   completed: { label: '✅ Completed', color: C.primary },
   cancelled: { label: '🔴 Cancelled', color: C.error },
+};
+
+const ICON_MAP = {
+  person: User,
+  location: MapPin,
+  time: Clock,
+  cash: CreditCard
 };
 
 export default function ActiveRequestsScreen() {
@@ -137,26 +151,35 @@ export default function ActiveRequestsScreen() {
           <>
             <View style={s.actionRow}>
               <TouchableOpacity style={s.actionBtn}>
-                <Ionicons name="call-outline" size={16} color={C.primary} />
+                <Phone size={14} color={C.primary} />
                 <Text style={s.actionText}> Contact</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.actionBtn, s.actionBtnDanger]}
                 onPress={() => handleCancel(item.booking_id || item.id)}>
-                <Ionicons name="close-circle-outline" size={16} color={C.error} />
+                <XCircle size={14} color={C.error} />
                 <Text style={[s.actionText, { color: C.error }]}> Cancel</Text>
               </TouchableOpacity>
             </View>
 
             <View style={{ paddingHorizontal: 14, paddingBottom: 10 }}>
               <TouchableOpacity 
-                style={s.completeBtn}
-                onPress={() => handleComplete(item.booking_id || item.id)}>
-                <Text style={s.completeBtnText}>✅ Mark as Completed</Text>
+                onPress={() => handleComplete(item.booking_id || item.id)}
+                activeOpacity={0.85}
+                style={s.completeBtnWrapper}
+              >
+                <LinearGradient
+                  colors={['#00C896', '#7B61FF']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={s.completeBtn}
+                >
+                  <Text style={s.completeBtnText}>✅ Mark as Completed</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
 
             <View style={s.reminderBar}>
-              <Ionicons name="notifications-outline" size={12} color={C.textMuted} />
+              <Bell size={12} color={C.textSec} style={{ marginRight: 4 }} />
               <Text style={s.reminderText}> Reminder active — 1 hr before appointment</Text>
             </View>
           </>
@@ -168,7 +191,7 @@ export default function ActiveRequestsScreen() {
   const EmptyState = () => (
     <View style={s.empty}>
       <View style={s.emptyIcon}>
-        <Ionicons name="document-text-outline" size={48} color={C.textMuted} />
+        <FileText size={32} color="#8888AA" />
       </View>
       <Text style={s.emptyTitle}>Koi Active Request Nahi</Text>
       <Text style={s.emptySub}>AI Chat tab se apna pehla booking karein! 💬</Text>
@@ -187,7 +210,7 @@ export default function ActiveRequestsScreen() {
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       <View style={s.header}>
-        <Text style={s.headerTitle}>🔔 Active Requests</Text>
+        <Text style={s.headerTitle}>Active Requests</Text>
         <Text style={s.headerCount}>{String(bookings.length)} booking{bookings.length !== 1 ? 's' : ''}</Text>
       </View>
       {loading ? (
@@ -198,6 +221,7 @@ export default function ActiveRequestsScreen() {
       ) : (
         <ScrollView
           contentContainerStyle={s.list}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary} />
           }
@@ -222,9 +246,10 @@ export default function ActiveRequestsScreen() {
 }
 
 function DetailRow({ icon, label, value, accent }) {
+  const IconComp = ICON_MAP[icon] || User;
   return (
     <View style={s.detailRow}>
-      <Ionicons name={icon + '-outline'} size={14} color={C.textMuted} />
+      <IconComp size={13} color={C.textSec} />
       <Text style={s.detailLabel}> {label}:</Text>
       <Text style={[s.detailValue, accent ? { color: C.primary, fontWeight: '700' } : null]}>{value}</Text>
     </View>
@@ -236,67 +261,73 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: C.headerBg, borderBottomWidth: 1, borderBottomColor: C.border,
+    backgroundColor: '#0A0A0F', borderBottomWidth: 1, borderBottomColor: C.border,
   },
-  headerTitle: { color: '#1A1A2E', fontSize: 18, fontWeight: '700' },
-  headerCount: { color: C.textMuted, fontSize: 12, fontWeight: '600' },
+  headerTitle: { color: C.text, fontSize: 18, fontWeight: '750', letterSpacing: -0.3 },
+  headerCount: { color: C.textSec, fontSize: 12, fontWeight: '600' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadText: { color: C.textSec, fontSize: 13, marginTop: 10 },
   list: { padding: 12 },
   sectionHeader: {
-    color: '#1A1A2E', fontSize: 14, fontWeight: '800',
+    color: C.text, fontSize: 12, fontWeight: '805',
     marginTop: 15, marginBottom: 8, paddingHorizontal: 4,
-    textTransform: 'uppercase', letterSpacing: 0.5,
+    textTransform: 'uppercase', letterSpacing: 0.8,
   },
   card: {
-    backgroundColor: C.card, borderRadius: 16, borderWidth: 1, borderColor: C.border,
+    backgroundColor: '#16161F', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.04)',
     marginBottom: 14, overflow: 'hidden',
-    shadowColor: '#00000010', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1, shadowRadius: 4, elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 14, paddingTop: 12, paddingBottom: 4,
   },
   statusBadge: { fontSize: 12, fontWeight: '700' },
-  bookingId: { color: C.textMuted, fontSize: 10, fontFamily: 'monospace' },
+  bookingId: { color: C.textSec, fontSize: 10, fontFamily: 'monospace' },
   serviceType: {
-    color: '#1A1A2E', fontSize: 17, fontWeight: '800', paddingHorizontal: 14,
+    color: C.text, fontSize: 17, fontWeight: '800', paddingHorizontal: 14,
     paddingBottom: 8, letterSpacing: -0.3,
   },
   detailBox: {
-    marginHorizontal: 14, backgroundColor: C.bg, borderRadius: 10,
+    marginHorizontal: 14, backgroundColor: '#111118', borderRadius: 12,
     padding: 10, marginBottom: 10, borderWidth: 1, borderColor: C.border,
   },
   detailRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4 },
-  detailLabel: { color: C.textMuted, fontSize: 12, width: 80 },
+  detailLabel: { color: C.textSec, fontSize: 12, width: 80 },
   detailValue: { color: C.text, fontSize: 12, fontWeight: '500', flex: 1 },
   actionRow: { flexDirection: 'row', paddingHorizontal: 14, paddingBottom: 10, gap: 8 },
   actionBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 8,
-    borderWidth: 1, borderColor: C.border,
+    backgroundColor: '#111118', borderRadius: 10, paddingVertical: 8,
+    borderWidth: 1, borderColor: C.border, gap: 4
   },
-  actionBtnDanger: { borderColor: C.error, backgroundColor: '#FFFFFF' },
-  actionText: { color: C.primary, fontSize: 11, fontWeight: '600' },
+  actionBtnDanger: { borderColor: C.error, backgroundColor: '#111118' },
+  actionText: { color: C.primary, fontSize: 12, fontWeight: '600' },
+  completeBtnWrapper: {
+    borderRadius: 10,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3
+  },
   completeBtn: {
-    backgroundColor: '#00C853', borderRadius: 10, paddingVertical: 10,
+    borderRadius: 10, paddingVertical: 10,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#00A843',
   },
   completeBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   reminderBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 8, backgroundColor: C.surface,
-    borderTopWidth: 1, borderTopColor: C.border,
+    paddingVertical: 8, backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.04)',
   },
-  reminderText: { color: C.textMuted, fontSize: 10 },
+  reminderText: { color: C.textSec, fontSize: 10 },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, marginTop: 60 },
   emptyIcon: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: C.surface, alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)', borderWidth: 1, borderColor: C.border,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 16,
   },
-  emptyTitle: { color: '#1A1A2E', fontSize: 18, fontWeight: '700', marginBottom: 6 },
+  emptyTitle: { color: C.text, fontSize: 18, fontWeight: '700', marginBottom: 6 },
   emptySub: { color: C.textSec, fontSize: 13, textAlign: 'center' },
   errorMsg: { color: C.error, fontSize: 12, marginTop: 10, textAlign: 'center' },
 });

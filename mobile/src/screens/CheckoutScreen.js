@@ -10,16 +10,17 @@ import {
   Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, MapPin, AlertCircle } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getProviderSlots, createManualBooking } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const C = {
-  bg: '#F5F6FA', surface: '#FFFFFF', card: '#FFFFFF', primary: '#00C853',
-  text: '#1A1A2E', textSec: '#555570', textMuted: '#9999AA',
-  border: '#E4E5EF', headerBg: '#FFFFFF', warning: '#FF9500', star: '#FFB300',
-  error: '#F44336'
+  bg: '#0A0A0F', surface: '#111118', card: '#16161F', primary: '#00C896',
+  text: '#F0F0F5', textSec: '#8888AA', textMuted: '#555570',
+  border: 'rgba(255, 255, 255, 0.08)', headerBg: '#0A0A0F', warning: '#F5C842', star: '#F5C842',
+  error: '#FF5C5C'
 };
 
 export default function CheckoutScreen({ route, navigation }) {
@@ -203,19 +204,20 @@ export default function CheckoutScreen({ route, navigation }) {
   };
 
   const totalCartPrice = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
+  const isDisabled = !selectedSlot || !userDetails.name.trim() || !userDetails.phone.trim() || !userDetails.address || booking;
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={C.text} />
+          <ArrowLeft size={22} color={C.text} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>Checkout</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* Order Summary Card */}
         <View style={s.card}>
           <Text style={s.cardTitle}>📋 Order Summary</Text>
@@ -250,20 +252,20 @@ export default function CheckoutScreen({ route, navigation }) {
           <TextInput
             style={s.input}
             placeholder="Full Name"
-            placeholderTextColor={C.textMuted}
+            placeholderTextColor="#555570"
             value={userDetails.name}
             onChangeText={v => setUserDetails(p => ({ ...p, name: v }))}
           />
           <TextInput
             style={s.input}
             placeholder="Phone Number (03xx-xxxxxxx)"
-            placeholderTextColor={C.textMuted}
+            placeholderTextColor="#555570"
             value={userDetails.phone}
             onChangeText={v => setUserDetails(p => ({ ...p, phone: v }))}
             keyboardType="phone-pad"
           />
           <View style={s.addressDisplay}>
-            <Ionicons name="location" size={16} color={C.primary} style={{ marginRight: 8, marginTop: 2 }} />
+            <MapPin size={16} color={C.primary} style={{ marginRight: 8, marginTop: 2 }} />
             <Text style={s.addressDisplayText}>
               {userDetails.address || 'No address selected — tap Edit Address'}
             </Text>
@@ -331,30 +333,34 @@ export default function CheckoutScreen({ route, navigation }) {
         {/* Slot Error Banner */}
         {slotError && (
           <View style={s.slotErrorBanner}>
-            <Ionicons name="warning" size={18} color={C.warning} style={{ marginRight: 8 }} />
+            <AlertCircle size={18} color={C.error} style={{ marginRight: 8 }} />
             <Text style={s.slotErrorText}>{slotError}</Text>
           </View>
         )}
 
         {/* Confirm Booking Button */}
         <TouchableOpacity
-          style={[
-            s.confirmBtn,
-            (!selectedSlot || !userDetails.name.trim() || !userDetails.phone.trim() || !userDetails.address || booking) 
-              && s.confirmBtnDisabled
-          ]}
           onPress={handleBooking}
-          disabled={!selectedSlot || !userDetails.name.trim() || !userDetails.phone.trim() || !userDetails.address || booking}
+          disabled={isDisabled}
+          style={[s.confirmBtnWrapper, isDisabled && s.confirmBtnDisabled]}
+          activeOpacity={0.85}
         >
-          {booking ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={s.confirmBtnText}>
-              {cart.some(c => c.isVisitQuote) 
-                ? 'Request Visit' 
-                : `Confirm Booking — PKR ${totalCartPrice.toLocaleString()}`}
-            </Text>
-          )}
+          <LinearGradient
+            colors={['#00C896', '#7B61FF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={s.confirmBtn}
+          >
+            {booking ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={s.confirmBtnText}>
+                {cart.some(c => c.isVisitQuote) 
+                  ? 'Request Visit' 
+                  : `Confirm Booking — PKR ${totalCartPrice.toLocaleString()}`}
+              </Text>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -369,29 +375,24 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: C.headerBg,
+    backgroundColor: '#0A0A0F',
     borderBottomWidth: 1,
     borderBottomColor: C.border
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { color: C.text, fontSize: 18, fontWeight: '700' },
+  headerTitle: { color: C.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
   scrollContent: { padding: 16, paddingBottom: 40 },
   card: { 
-    backgroundColor: C.surface, 
-    borderRadius: 16, 
+    backgroundColor: '#16161F', 
+    borderRadius: 20, 
     borderWidth: 1, 
-    borderColor: C.border, 
+    borderColor: 'rgba(255, 255, 255, 0.04)', 
     padding: 16, 
     marginBottom: 16,
-    shadowColor: '#00000008',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 2
   },
-  cardTitle: { color: C.textSec, fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 14 },
+  cardTitle: { color: C.textSec, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 14 },
   cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  editLink: { color: C.primary, fontSize: 13, fontWeight: '600' },
+  editLink: { color: C.primary, fontSize: 13, fontWeight: '700' },
   orderItem: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   orderItemName: { color: C.text, fontSize: 14 },
   orderItemPrice: { color: C.text, fontSize: 14, fontWeight: '600' },
@@ -400,23 +401,23 @@ const s = StyleSheet.create({
   totalLabel: { color: C.text, fontSize: 15, fontWeight: '700' },
   totalAmount: { color: C.primary, fontSize: 18, fontWeight: '800' },
   input: { 
-    backgroundColor: '#F8F9FC', 
+    backgroundColor: '#111118', 
     color: C.text, 
     borderWidth: 1, 
     borderColor: C.border, 
-    borderRadius: 8, 
-    paddingHorizontal: 12, 
-    paddingVertical: 10, 
+    borderRadius: 12, 
+    paddingHorizontal: 14, 
+    paddingVertical: 12, 
     fontSize: 14,
     marginBottom: 12 
   },
   addressDisplay: { 
     flexDirection: 'row', 
-    backgroundColor: '#F8F9FC', 
+    backgroundColor: '#111118', 
     borderWidth: 1, 
     borderColor: C.border,
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 12,
     alignItems: 'flex-start'
   },
   addressDisplayText: { color: C.textSec, fontSize: 12, flex: 1, lineHeight: 16 },
@@ -425,7 +426,7 @@ const s = StyleSheet.create({
     width: 60, 
     height: 70, 
     borderRadius: 12, 
-    backgroundColor: '#F8F9FC', 
+    backgroundColor: '#111118', 
     borderWidth: 1, 
     borderColor: C.border,
     justifyContent: 'center',
@@ -433,10 +434,10 @@ const s = StyleSheet.create({
     marginRight: 8
   },
   dateChipActive: { 
-    backgroundColor: 'rgba(0, 200, 83, 0.08)',
+    backgroundColor: 'rgba(0, 200, 150, 0.08)',
     borderColor: C.primary 
   },
-  dateChipDay: { color: C.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  dateChipDay: { color: C.textSec, fontSize: 11, fontWeight: '600', marginBottom: 4 },
   dateChipDayActive: { color: C.primary },
   dateChipDate: { color: C.text, fontSize: 16, fontWeight: '700' },
   dateChipDateActive: { color: C.primary },
@@ -447,23 +448,23 @@ const s = StyleSheet.create({
   },
   slotChip: { 
     width: '23%', 
-    backgroundColor: '#F8F9FC', 
-    borderRadius: 8, 
+    backgroundColor: '#111118', 
+    borderRadius: 10, 
     borderWidth: 1, 
     borderColor: C.border,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
     marginHorizontal: '1%',
     marginBottom: 8
   },
   slotChipUnavailable: { 
-    backgroundColor: '#F0F0F5',
-    borderColor: '#E4E5EF',
-    opacity: 0.6
+    backgroundColor: '#16161F',
+    borderColor: 'rgba(255,255,255,0.02)',
+    opacity: 0.4
   },
   slotChipSelected: { 
-    backgroundColor: 'rgba(0, 200, 83, 0.08)',
+    backgroundColor: 'rgba(0, 200, 150, 0.08)',
     borderColor: C.primary 
   },
   slotText: { color: C.text, fontSize: 11, fontWeight: '600' },
@@ -472,34 +473,34 @@ const s = StyleSheet.create({
   slotBooked: { color: C.error, fontSize: 8, marginTop: 2, fontWeight: '700' },
   slotErrorBanner: { 
     flexDirection: 'row', 
-    backgroundColor: 'rgba(255, 213, 79, 0.12)', 
+    backgroundColor: 'rgba(255, 92, 92, 0.08)', 
     borderWidth: 1, 
-    borderColor: C.warning, 
+    borderColor: C.error, 
     borderRadius: 12, 
     padding: 12, 
     marginBottom: 16,
     alignItems: 'center'
   },
-  slotErrorText: { color: C.warning, fontSize: 12, fontWeight: '600', flex: 1 },
-  confirmBtn: { 
-    backgroundColor: C.primary, 
-    borderRadius: 12, 
-    paddingVertical: 14, 
-    alignItems: 'center',
-    justifyContent: 'center',
+  slotErrorText: { color: C.error, fontSize: 12, fontWeight: '600', flex: 1 },
+  confirmBtnWrapper: {
+    borderRadius: 50,
     marginTop: 10,
     shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
     elevation: 4
   },
   confirmBtnDisabled: { 
-    backgroundColor: '#F0F0F5', 
-    borderColor: '#E4E5EF',
     opacity: 0.5,
     shadowOpacity: 0,
     elevation: 0
   },
-  confirmBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' }
+  confirmBtn: { 
+    borderRadius: 50, 
+    paddingVertical: 16, 
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' }
 });

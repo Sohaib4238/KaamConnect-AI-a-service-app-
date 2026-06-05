@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, XCircle, PlusCircle, Navigation, MapPin, CheckCircle, Trash2 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LeafletMap from '../components/LeafletMap';
 import { useAuth } from '../context/AuthContext';
 import * as Location from 'expo-location';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const C = {
-  bg: '#F5F6FA', surface: '#FFFFFF', card: '#FFFFFF', primary: '#00C853',
-  text: '#1A1A2E', textSec: '#555570', textMuted: '#9999AA',
-  border: '#E4E5EF', headerBg: '#FFFFFF', warning: '#FF9500', star: '#FFB300',
-  error: '#F44336'
+  bg: '#0A0A0F', surface: '#111118', card: '#16161F', primary: '#00C896',
+  text: '#F0F0F5', textSec: '#8888AA', textMuted: '#555570',
+  border: 'rgba(255, 255, 255, 0.08)', headerBg: '#0A0A0F', warning: '#F5C842', star: '#F5C842',
+  error: '#FF5C5C'
 };
 
 const LABELS = ['Home', 'Office', 'Parents', 'Other'];
@@ -318,22 +319,22 @@ export default function AddressScreen({ navigation, route }) {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={C.text} />
+          <ArrowLeft size={22} color={C.text} />
         </TouchableOpacity>
-        <Text style={s.headerTitle}>📍 Manage Addresses</Text>
+        <Text style={s.headerTitle}>Manage Addresses</Text>
         <TouchableOpacity 
           style={s.addHeaderBtn} 
           onPress={() => setShowAddForm(!showAddForm)}
         >
-          <Ionicons 
-            name={showAddForm ? "close-circle" : "add-circle"} 
-            size={24} 
-            color={C.primary} 
-          />
+          {showAddForm ? (
+            <XCircle size={24} color={C.primary} />
+          ) : (
+            <PlusCircle size={24} color={C.primary} />
+          )}
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* Add Address Form */}
         {showAddForm && (
           <View style={s.formCard}>
@@ -362,9 +363,9 @@ export default function AddressScreen({ navigation, route }) {
               onPress={getCurrentLocation}
               disabled={locating}>
               {locating ? (
-                <ActivityIndicator size="small" color="#00C853" />
+                <ActivityIndicator size="small" color={C.primary} />
               ) : (
-                <Ionicons name="locate" size={18} color="#00C853" />
+                <Navigation size={18} color={C.primary} />
               )}
               <Text style={s.mapPickerBtnText}>
                 {locating ? 'Detecting location...' : '📍 Use my current location'}
@@ -405,7 +406,7 @@ export default function AddressScreen({ navigation, route }) {
                 </View>
                 {reverseGeoAddress ? (
                   <View style={s.mapAddressBar}>
-                    <Ionicons name="location" size={16} color="#00C853" />
+                    <MapPin size={16} color={C.primary} />
                     <Text style={s.mapAddressText} numberOfLines={2}>
                       {reverseGeoAddress}
                     </Text>
@@ -419,7 +420,7 @@ export default function AddressScreen({ navigation, route }) {
             <TextInput
               style={s.input}
               placeholder="e.g. House 45, Street 4, Sector G-11"
-              placeholderTextColor={C.textMuted}
+              placeholderTextColor="#555570"
               value={newAddress.address}
               onChangeText={v => setNewAddress(p => ({ ...p, address: v }))}
             />
@@ -428,7 +429,7 @@ export default function AddressScreen({ navigation, route }) {
             <TextInput
               style={s.input}
               placeholder="e.g. Islamabad or Karachi"
-              placeholderTextColor={C.textMuted}
+              placeholderTextColor="#555570"
               value={newAddress.city}
               onChangeText={v => setNewAddress(p => ({ ...p, city: v }))}
             />
@@ -437,14 +438,25 @@ export default function AddressScreen({ navigation, route }) {
             <TextInput
               style={s.input}
               placeholder="e.g. Flat 302, near Markaz"
-              placeholderTextColor={C.textMuted}
+              placeholderTextColor="#555570"
               value={newAddress.details}
               onChangeText={v => setNewAddress(p => ({ ...p, details: v }))}
             />
 
             {/* Save Button */}
-            <TouchableOpacity style={s.saveBtn} onPress={saveAddress}>
-              <Text style={s.saveBtnText}>Save Address</Text>
+            <TouchableOpacity 
+              style={s.saveBtnWrapper} 
+              onPress={saveAddress}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#00C896', '#7B61FF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={s.saveBtn}
+              >
+                <Text style={s.saveBtnText}>Save Address</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         )}
@@ -453,7 +465,7 @@ export default function AddressScreen({ navigation, route }) {
         <Text style={s.sectionTitle}>📋 Saved Addresses</Text>
         {addresses.length === 0 ? (
           <View style={s.emptyState}>
-            <Ionicons name="location-outline" size={48} color={C.textMuted} style={{ marginBottom: 12 }} />
+            <MapPin size={48} color="#555570" style={{ marginBottom: 12 }} />
             <Text style={s.emptyStateText}>No saved addresses yet.</Text>
             <Text style={s.emptyStateSub}>Tap add button at the top to save your address.</Text>
           </View>
@@ -475,13 +487,13 @@ export default function AddressScreen({ navigation, route }) {
                 {addr.details ? <Text style={s.addrDetails}>{addr.details}</Text> : null}
               </View>
               {selectedAddressId === addr.id && (
-                <Ionicons name="checkmark-circle" size={22} color={C.primary} style={s.checkIcon} />
+                <CheckCircle size={22} color={C.primary} style={s.checkIcon} />
               )}
               <TouchableOpacity 
                 style={s.deleteBtn}
                 onPress={(e) => deleteAddress(addr.id, e)}
               >
-                <Ionicons name="trash-outline" size={18} color={C.error} />
+                <Trash2 size={18} color={C.error} />
               </TouchableOpacity>
             </TouchableOpacity>
           ))
@@ -499,43 +511,33 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: C.headerBg,
+    backgroundColor: '#0A0A0F',
     borderBottomWidth: 1,
     borderBottomColor: C.border
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { color: C.text, fontSize: 18, fontWeight: '700' },
+  headerTitle: { color: C.text, fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
   addHeaderBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-end' },
   scrollContent: { padding: 16, paddingBottom: 40 },
-  sectionTitle: { color: C.textSec, fontSize: 13, fontWeight: '600', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { color: C.textSec, fontSize: 12, fontWeight: '800', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.8 },
   emptyState: { 
     alignItems: 'center', 
     justifyContent: 'center', 
-    backgroundColor: C.surface, 
+    backgroundColor: '#16161F', 
     padding: 32, 
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1, 
-    borderColor: C.border,
-    shadowColor: '#00000008',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 2
+    borderColor: 'rgba(255,255,255,0.04)',
   },
   emptyStateText: { color: C.text, fontSize: 16, fontWeight: '700', marginBottom: 6 },
-  emptyStateSub: { color: C.textMuted, fontSize: 12, textAlign: 'center' },
+  emptyStateSub: { color: C.textSec, fontSize: 12, textAlign: 'center' },
   formCard: { 
-    backgroundColor: C.surface, 
+    backgroundColor: '#16161F', 
     padding: 16, 
-    borderRadius: 16, 
+    borderRadius: 20, 
     borderWidth: 1, 
-    borderColor: C.border,
-    marginBottom: 20,
-    shadowColor: '#00000008',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 2
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+    marginBottom: 24,
   },
   formTitle: { color: C.text, fontSize: 16, fontWeight: '700', marginBottom: 16 },
   inputLabel: { color: C.textSec, fontSize: 12, fontWeight: '600', marginBottom: 6 },
@@ -544,101 +546,101 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, 
     paddingVertical: 8, 
     borderRadius: 20, 
-    backgroundColor: '#F8F9FC', 
+    backgroundColor: '#111118', 
     borderWidth: 1, 
     borderColor: C.border, 
     marginRight: 8,
     marginBottom: 8
   },
   pillActive: { 
-    backgroundColor: 'rgba(0, 200, 83, 0.08)', 
+    backgroundColor: 'rgba(0, 200, 150, 0.08)', 
     borderColor: C.primary 
   },
   pillText: { color: C.textSec, fontSize: 12, fontWeight: '600' },
   pillTextActive: { color: C.primary },
   input: { 
-    backgroundColor: '#F8F9FC', 
+    backgroundColor: '#111118', 
     color: C.text, 
     borderWidth: 1, 
     borderColor: C.border, 
-    borderRadius: 8, 
-    paddingHorizontal: 12, 
-    paddingVertical: 10, 
+    borderRadius: 12, 
+    paddingHorizontal: 14, 
+    paddingVertical: 12, 
     fontSize: 14,
     marginBottom: 14 
   },
-  saveBtn: { 
-    backgroundColor: C.primary, 
-    borderRadius: 10, 
-    paddingVertical: 12, 
-    alignItems: 'center', 
+  saveBtnWrapper: {
+    borderRadius: 12, 
     marginTop: 8,
     shadowColor: C.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 3
   },
-  saveBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  saveBtn: { 
+    borderRadius: 12, 
+    paddingVertical: 14, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+  },
+  saveBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   addrCard: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: C.surface, 
+    backgroundColor: '#16161F', 
     padding: 16, 
-    borderRadius: 16, 
+    borderRadius: 20, 
     borderWidth: 1, 
-    borderColor: C.border,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
     marginBottom: 10,
-    shadowColor: '#00000006',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 3,
-    elevation: 1
   },
   addrCardSelected: { borderColor: C.primary },
   addrIconWrap: { 
     width: 40, 
     height: 40, 
     borderRadius: 20, 
-    backgroundColor: '#F8F9FC', 
+    backgroundColor: 'rgba(255,255,255,0.04)', 
     justifyContent: 'center', 
     alignItems: 'center',
-    marginRight: 12
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   addrIcon: { fontSize: 18 },
   addrInfo: { flex: 1 },
-  addrCardLabel: { color: C.text, fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  addrCardLabel: { color: C.text, fontSize: 14, fontWeight: '750', marginBottom: 2 },
   addrText: { color: C.textSec, fontSize: 12, lineHeight: 16 },
   addrDetails: { color: C.textMuted, fontSize: 11, marginTop: 2, fontStyle: 'italic' },
   checkIcon: { marginRight: 8 },
   deleteBtn: { padding: 8 },
   mapPickerBtn: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#E8F5E9', borderRadius: 12,
-    padding: 14, marginBottom: 12, gap: 8,
-    borderWidth: 1, borderColor: '#C8E6C9',
+    backgroundColor: 'rgba(0, 200, 150, 0.08)', borderRadius: 12,
+    padding: 14, marginBottom: 14, gap: 8,
+    borderWidth: 1, borderColor: 'rgba(0, 200, 150, 0.2)',
   },
   mapPickerBtnText: { 
-    color: '#00A843', fontWeight: '700', fontSize: 14 
+    color: C.primary, fontWeight: '700', fontSize: 14 
   },
   mapWrap: {
     borderRadius: 14, overflow: 'hidden',
-    marginBottom: 12, borderWidth: 1,
-    borderColor: '#E4E5EF', height: 220,
+    marginBottom: 14, borderWidth: 1,
+    borderColor: C.border, height: 220,
   },
   map: { width: '100%', height: 180 },
   mapHint: {
-    backgroundColor: '#F5F6FA', padding: 6,
+    backgroundColor: '#111118', padding: 6,
     alignItems: 'center',
   },
-  mapHintText: { fontSize: 11, color: '#9999AA' },
+  mapHintText: { fontSize: 11, color: '#8888AA' },
   mapAddressBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', padding: 10,
-    borderTopWidth: 1, borderTopColor: '#E4E5EF',
+    backgroundColor: '#16161F', padding: 10,
+    borderTopWidth: 1, borderTopColor: C.border,
     gap: 6,
   },
   mapAddressText: { 
-    flex: 1, fontSize: 12, color: '#555570' 
+    flex: 1, fontSize: 12, color: C.textSec 
   }
 });

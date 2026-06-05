@@ -45,9 +45,14 @@
 
     /* Print styling rules */
     @media print {
+      @page {
+        margin: 0; /* Removes default browser headers and footers (URL, date, etc) */
+      }
       body {
         background-color: #FFF;
-        padding: 0;
+        padding: 20mm; /* Internal padding instead of page margins */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
       .container {
         border: none;
@@ -59,7 +64,7 @@
         page-break-before: always;
       }
       .no-print {
-        display: none;
+        display: none !important;
       }
       a {
         text-decoration: none;

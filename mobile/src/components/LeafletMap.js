@@ -1,9 +1,9 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 /**
- * LeafletMap — A WebView-based OpenStreetMap component.
+ * LeafletMap — A WebView-based/iframe-based OpenStreetMap component.
  * 
  * Props:
  *   latitude, longitude  — center of the map
@@ -27,29 +27,72 @@ export default function LeafletMap({
 }) {
   const webRef = useRef(null);
 
+  // Handle messages in Web platform
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleWebMessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'mapPress' && onMapPress) {
+          onMapPress(data.lat, data.lng);
+        }
+      } catch (e) {
+        // ignore other messages
+      }
+    };
+
+    window.addEventListener('message', handleWebMessage);
+    return () => {
+      window.removeEventListener('message', handleWebMessage);
+    };
+  }, [onMapPress]);
+
   // When parent updates lat/lng, pan the map
   useEffect(() => {
     if (webRef.current) {
-      webRef.current.injectJavaScript(`
+      const js = `
         if(window.map) {
           window.map.setView([${latitude}, ${longitude}], ${zoom});
           if(window.marker) window.marker.setLatLng([${latitude}, ${longitude}]);
         }
         true;
-      `);
+      `;
+      if (Platform.OS === 'web') {
+        try {
+          if (webRef.current.contentWindow) {
+            webRef.current.contentWindow.eval(js);
+          }
+        } catch (e) {
+          // ignore potential load timing errors
+        }
+      } else {
+        webRef.current.injectJavaScript(js);
+      }
     }
   }, [latitude, longitude, zoom]);
 
   // Update marker when markerLat/markerLng change
   useEffect(() => {
     if (webRef.current && markerLat != null && markerLng != null) {
-      webRef.current.injectJavaScript(`
+      const js = `
         if(window.marker) {
           window.marker.setLatLng([${markerLat}, ${markerLng}]);
           window.marker.addTo(window.map);
         }
         true;
-      `);
+      `;
+      if (Platform.OS === 'web') {
+        try {
+          if (webRef.current.contentWindow) {
+            webRef.current.contentWindow.eval(js);
+          }
+        } catch (e) {
+          // ignore
+        }
+      } else {
+        webRef.current.injectJavaScript(js);
+      }
     }
   }, [markerLat, markerLng]);
 
@@ -114,11 +157,18 @@ export default function LeafletMap({
       var lat = e.latlng.lat;
       var lng = e.latlng.lng;
       marker.setLatLng([lat, lng]).addTo(map);
-      window.ReactNativeWebView.postMessage(JSON.stringify({
+      
+      var messageStr = JSON.stringify({
         type: 'mapPress',
         lat: lat,
         lng: lng
-      }));
+      });
+
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(messageStr);
+      } else {
+        window.parent.postMessage(messageStr, '*');
+      }
     });
   </script>
 </body>
@@ -127,19 +177,28 @@ export default function LeafletMap({
 
   return (
     <View style={[styles.container, style]}>
-      <WebView
-        ref={webRef}
-        originWhitelist={['*']}
-        source={{ html }}
-        style={styles.webview}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        onMessage={handleMessage}
-        scrollEnabled={false}
-        showsHorizontalScrollIndicator={false}
-        showsVerticalScrollIndicator={false}
-        overScrollMode="never"
-      />
+      {Platform.OS === 'web' ? (
+        <iframe
+          ref={webRef}
+          srcDoc={html}
+          style={{ width: '100%', height: '100%', border: 'none', background: 'transparent' }}
+          title="Leaflet Map"
+        />
+      ) : (
+        <WebView
+          ref={webRef}
+          originWhitelist={['*']}
+          source={{ html }}
+          style={styles.webview}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          onMessage={handleMessage}
+          scrollEnabled={false}
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+          overScrollMode="never"
+        />
+      )}
     </View>
   );
 }

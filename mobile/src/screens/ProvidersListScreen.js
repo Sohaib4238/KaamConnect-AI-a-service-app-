@@ -6,26 +6,29 @@ import {
   TouchableOpacity, 
   FlatList, 
   TextInput,
-  Animated 
+  Animated,
+  Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, Search, XCircle, Users } from 'lucide-react-native';
 import { getProviders } from '../config/api';
 import { getServiceEmoji } from '../utils/serviceHelpers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const { width } = Dimensions.get('window');
+
 const C = {
-  bg: '#F5F6FA',
-  white: '#FFFFFF',
-  primary: '#00C853',
-  text: '#1A1A2E',
-  textSec: '#666680',
-  textMuted: '#9999AA',
-  border: '#E8E8F0',
-  card: '#FFFFFF',
-  headerBg: '#FFFFFF',
-  liveDot: '#00C853',
-  closedDot: '#FF5252',
+  bg: '#0A0A0F',
+  white: '#111118',
+  primary: '#00C896',
+  text: '#F0F0F5',
+  textSec: '#8888AA',
+  textMuted: '#555570',
+  border: 'rgba(255, 255, 255, 0.08)',
+  card: '#16161F',
+  headerBg: '#0A0A0F',
+  liveDot: '#00C896',
+  closedDot: '#FF5C5C',
 };
 
 const DEFAULT_LAT = 24.8607;
@@ -182,7 +185,7 @@ export default function ProvidersListScreen({ route, navigation }) {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={C.text} />
+          <ArrowLeft size={22} color={C.text} />
         </TouchableOpacity>
         <Text style={s.headerTitle} numberOfLines={1}>{displayTitle}</Text>
         <View style={{ width: 40 }} />
@@ -190,17 +193,17 @@ export default function ProvidersListScreen({ route, navigation }) {
 
       {/* Search Bar */}
       <View style={s.searchBar}>
-        <Ionicons name="search" size={18} color={C.textMuted} style={{ marginRight: 8 }} />
+        <Search size={18} color="#8888AA" style={{ marginRight: 8 }} />
         <TextInput
           placeholder="Search provider name or service..."
-          placeholderTextColor={C.textMuted}
+          placeholderTextColor="#555570"
           value={searchQuery}
           onChangeText={setSearchQuery}
           style={s.searchInput}
         />
         {searchQuery ? (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={16} color={C.textMuted} />
+            <XCircle size={16} color="#8888AA" />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -233,7 +236,7 @@ export default function ProvidersListScreen({ route, navigation }) {
         renderSkeleton()
       ) : filteredProviders.length === 0 ? (
         <View style={s.emptyContainer}>
-          <Ionicons name="people-outline" size={48} color={C.textMuted} />
+          <Users size={48} color="#555570" style={{ marginBottom: 12 }} />
           <Text style={s.emptyTitle}>No Providers Found</Text>
           <Text style={s.emptySub}>No active providers match this service category.</Text>
         </View>
@@ -242,9 +245,11 @@ export default function ProvidersListScreen({ route, navigation }) {
           data={filteredProviders}
           keyExtractor={item => item.id || item.place_id}
           contentContainerStyle={s.listContent}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
             <TouchableOpacity 
               style={s.provCard}
+              activeOpacity={0.8}
               onPress={() => navigation.navigate('ProviderMenuScreen', { 
                 providerId: item.id || item.place_id,
                 providerName: item.name
@@ -267,7 +272,7 @@ export default function ProvidersListScreen({ route, navigation }) {
                         <Text style={s.liveText}>● OPEN</Text>
                       </View>
                     ) : (
-                      <View style={[s.liveBadge, { backgroundColor: '#FFEBEE' }]}>
+                      <View style={[s.liveBadge, { backgroundColor: 'rgba(255, 92, 92, 0.08)' }]}>
                         <Text style={[s.liveText, { color: C.closedDot }]}>● BUSY</Text>
                       </View>
                     )}
@@ -314,7 +319,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: C.headerBg,
+    backgroundColor: '#0A0A0F',
     borderBottomWidth: 1,
     borderBottomColor: C.border
   },
@@ -322,64 +327,61 @@ const s = StyleSheet.create({
   headerTitle: { color: C.text, fontSize: 18, fontWeight: '700', flex: 1, textAlign: 'center' },
   searchBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.white,
+    backgroundColor: '#16161F',
     marginHorizontal: 12, marginBottom: 10,
     marginTop: 10,
     paddingHorizontal: 14, paddingVertical: 10,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1, borderColor: C.border,
   },
   searchInput: { flex: 1, color: C.text, fontSize: 14, padding: 0 },
   chipWrapper: { 
     borderBottomWidth: 1, 
     borderBottomColor: C.border, 
-    backgroundColor: C.headerBg,
+    backgroundColor: '#0A0A0F',
     paddingVertical: 8
   },
   chipList: { paddingHorizontal: 16 },
   chip: { 
     paddingHorizontal: 16, paddingVertical: 8,
-    backgroundColor: C.white, borderRadius: 20,
-    marginRight: 8, borderWidth: 1.5, borderColor: C.border,
+    backgroundColor: '#16161F', borderRadius: 20,
+    marginRight: 8, borderWidth: 1, borderColor: C.border,
   },
   chipActive: { 
-    backgroundColor: '#E8F5E9', 
+    backgroundColor: 'rgba(0, 200, 150, 0.08)', 
     borderColor: C.primary,
   },
   chipText: { fontSize: 12, fontWeight: '600', color: C.textSec },
-  chipTextActive: { color: C.primary, fontWeight: '800' },
+  chipTextActive: { color: C.primary, fontWeight: '700' },
   listContent: { paddingBottom: 32 },
   provCard: { 
-    backgroundColor: C.white,
-    borderRadius: 16,
+    backgroundColor: '#16161F',
+    borderRadius: 20,
     padding: 16,
     marginHorizontal: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: C.border,
-    shadowColor: '#00000010',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 6,
-    elevation: 3,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
     flexDirection: 'row',
     alignItems: 'center',
   },
   provCardTop: { flexDirection: 'row', flex: 1 },
   provAvatar: { 
     width: 60, height: 60, borderRadius: 16,
-    backgroundColor: '#F0FFF4',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     alignItems: 'center', justifyContent: 'center',
     marginRight: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   provAvatarEmoji: { fontSize: 28 },
   provInfo: { flex: 1, justifyContent: 'center' },
   provNameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  provName: { color: C.text, fontSize: 16, fontWeight: '800', flex: 1, marginRight: 8 },
+  provName: { color: C.text, fontSize: 16, fontWeight: '800', flex: 1, marginRight: 8, letterSpacing: -0.3 },
   liveBadge: { 
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'rgba(0, 200, 150, 0.08)',
     paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   liveText: { color: C.primary, fontSize: 10, fontWeight: '800' },
   provCategory: { fontSize: 12, color: C.textSec, marginTop: 2, textTransform: 'capitalize' },
@@ -393,21 +395,22 @@ const s = StyleSheet.create({
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
   emptyTitle: { color: C.text, fontSize: 16, fontWeight: '700', marginTop: 12, marginBottom: 4 },
   emptySub: { color: C.textSec, fontSize: 12, textAlign: 'center' },
-
+ 
   // Skeletons
   skeletonContainer: { padding: 12 },
   skeletonCard: { 
-    backgroundColor: C.white, borderRadius: 16,
+    backgroundColor: '#16161F', borderRadius: 20,
     padding: 16, marginHorizontal: 12, marginBottom: 10,
     flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.04)',
   },
   skeletonAvatar: { 
     width: 60, height: 60, borderRadius: 16,
-    backgroundColor: C.border, marginRight: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', marginRight: 14,
   },
   skeletonInfo: { flex: 1, gap: 8 },
   skeletonLine: { 
     height: 12, borderRadius: 6,
-    backgroundColor: C.border, width: '80%',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)', width: '80%',
   }
 });

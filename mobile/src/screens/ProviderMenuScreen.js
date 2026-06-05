@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, ShoppingCart, AlertTriangle, HelpCircle, ChevronRight } from 'lucide-react-native';
 import { getProviderDetails } from '../config/api';
 import { getServiceEmoji } from '../utils/serviceHelpers';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const C = {
-  bg: '#F5F6FA', surface: '#FFFFFF', card: '#FFFFFF', primary: '#00C853',
-  text: '#1A1A2E', textSec: '#555570', textMuted: '#9999AA',
-  border: '#E4E5EF', headerBg: '#FFFFFF', warning: '#FF9500', star: '#FFB300'
+  bg: '#0A0A0F', surface: '#111118', card: '#16161F', primary: '#00C896',
+  text: '#F0F0F5', textSec: '#8888AA', textMuted: '#555570',
+  border: 'rgba(255, 255, 255, 0.08)', headerBg: '#0A0A0F', warning: '#F5C842', star: '#F5C842'
 };
 
 const CATEGORY_NAMES = {
@@ -100,7 +101,7 @@ export default function ProviderMenuScreen({ route, navigation }) {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={C.text} />
+          <ArrowLeft size={22} color={C.text} />
         </TouchableOpacity>
         <Text style={s.headerTitle} numberOfLines={1}>{providerName}</Text>
         
@@ -109,7 +110,7 @@ export default function ProviderMenuScreen({ route, navigation }) {
           onPress={() => cart.length > 0 && navigation.navigate('CheckoutScreen', { cart, provider })}
           disabled={cart.length === 0}
         >
-          <Ionicons name="cart" size={24} color={cart.length > 0 ? C.primary : C.textSec} />
+          <ShoppingCart size={22} color={cart.length > 0 ? C.primary : '#8888AA'} />
           {cart.length > 0 && (
             <View style={s.cartBadge}>
               <Text style={s.cartBadgeText}>{totalCartCount}</Text>
@@ -125,12 +126,12 @@ export default function ProviderMenuScreen({ route, navigation }) {
         </View>
       ) : !provider ? (
         <View style={s.errorState}>
-          <Ionicons name="alert-circle-outline" size={48} color={C.textMuted} />
+          <AlertTriangle size={48} color="#555570" style={{ marginBottom: 12 }} />
           <Text style={s.errorText}>Provider not found</Text>
         </View>
       ) : (
         <View style={{ flex: 1 }}>
-          <ScrollView contentContainerStyle={s.scrollContent}>
+          <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Provider Info Card */}
             <View style={s.provInfoCard}>
               <View style={s.provEmojiWrap}>
@@ -191,6 +192,7 @@ export default function ProviderMenuScreen({ route, navigation }) {
                       <TouchableOpacity 
                         style={s.addBtn}
                         onPress={() => addToCart(service)}
+                        activeOpacity={0.8}
                       >
                         <Text style={s.addBtnText}>+ Add</Text>
                       </TouchableOpacity>
@@ -203,14 +205,13 @@ export default function ProviderMenuScreen({ route, navigation }) {
             {/* Special "Not sure? Request Visit" Option */}
             <View style={s.visitCard}>
               <View style={s.visitCardHeaderRow}>
-                <Ionicons name="help-circle" size={24} color="#0288D1" />
+                <HelpCircle size={22} color="#7B61FF" />
                 <Text style={s.visitCardTitle}>Not sure what you need?</Text>
               </View>
               <Text style={s.visitCardDesc}>
                 Get an on-site expert assessment. The provider will visit, diagnose the problem, and give a customized quote.
               </Text>
               <TouchableOpacity
-                style={s.visitBtn}
                 onPress={() => {
                   const visitQuoteService = {
                     id: 'visit_quote',
@@ -228,9 +229,18 @@ export default function ProviderMenuScreen({ route, navigation }) {
                     source: route.params?.source || 'manual'
                   });
                 }}
+                activeOpacity={0.85}
+                style={s.visitBtnWrapper}
               >
-                <Text style={s.visitBtnText}>Request Visit & Quote</Text>
-                <Ionicons name="chevron-forward" size={16} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                <LinearGradient
+                  colors={['#7B61FF', '#00C896']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={s.visitBtn}
+                >
+                  <Text style={s.visitBtnText}>Request Visit & Quote</Text>
+                  <ChevronRight size={16} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -242,11 +252,20 @@ export default function ProviderMenuScreen({ route, navigation }) {
                 <Text style={s.cartBarCount}>{totalCartCount} item{totalCartCount > 1 ? 's' : ''} added</Text>
                 <Text style={s.cartBarTotal}>PKR {totalCartPrice.toLocaleString()}</Text>
               </View>
+              
               <TouchableOpacity 
-                style={s.cartBarBtn}
                 onPress={() => navigation.navigate('CheckoutScreen', { cart, provider })}
+                activeOpacity={0.85}
+                style={s.cartBarBtnWrapper}
               >
-                <Text style={s.cartBarBtnText}>Checkout →</Text>
+                <LinearGradient
+                  colors={['#00C896', '#7B61FF']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={s.cartBarBtn}
+                >
+                  <Text style={s.cartBarBtnText}>Checkout →</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           )}
@@ -264,12 +283,12 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: C.headerBg,
+    backgroundColor: '#0A0A0F',
     borderBottomWidth: 1,
     borderBottomColor: C.border
   },
   backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { color: C.text, fontSize: 18, fontWeight: '700', flex: 1, textAlign: 'center' },
+  headerTitle: { color: C.text, fontSize: 18, fontWeight: '700', flex: 1, textAlign: 'center', letterSpacing: -0.3 },
   cartBtn: { 
     width: 40, 
     height: 40, 
@@ -281,7 +300,7 @@ const s = StyleSheet.create({
     position: 'absolute', 
     right: -4, 
     top: 0, 
-    backgroundColor: '#FF3D00', 
+    backgroundColor: '#FF5C5C', 
     borderRadius: 9, 
     width: 18, 
     height: 18, 
@@ -295,37 +314,32 @@ const s = StyleSheet.create({
   errorText: { color: C.text, fontSize: 16, fontWeight: '700', marginTop: 12 },
   scrollContent: { padding: 16, paddingBottom: 100 },
   provInfoCard: { 
-    backgroundColor: C.surface, 
+    backgroundColor: '#16161F', 
     borderRadius: 20, 
     borderWidth: 1, 
-    borderColor: C.border, 
+    borderColor: 'rgba(255, 255, 255, 0.04)', 
     padding: 20, 
     alignItems: 'center',
-    marginBottom: 20,
-    shadowColor: '#0000000A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 24,
   },
   provEmojiWrap: { 
     width: 70, 
     height: 70, 
     borderRadius: 35, 
-    backgroundColor: '#F8F9FC', 
+    backgroundColor: 'rgba(255, 255, 255, 0.04)', 
     borderWidth: 1, 
-    borderColor: C.border,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     justifyContent: 'center', 
     alignItems: 'center',
     marginBottom: 12
   },
   provInfoEmoji: { fontSize: 36 },
-  provInfoName: { color: C.text, fontSize: 18, fontWeight: '800', marginBottom: 8 },
+  provInfoName: { color: C.text, fontSize: 18, fontWeight: '800', marginBottom: 8, letterSpacing: -0.3 },
   provInfoStats: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginBottom: 8 },
   statBadge: { 
-    backgroundColor: '#F8F9FC', 
+    backgroundColor: 'rgba(255, 255, 255, 0.04)', 
     borderWidth: 1, 
-    borderColor: C.border, 
+    borderColor: 'rgba(255, 255, 255, 0.08)', 
     borderRadius: 12, 
     paddingHorizontal: 10, 
     paddingVertical: 4, 
@@ -333,37 +347,32 @@ const s = StyleSheet.create({
     marginBottom: 4
   },
   statBadgeText: { color: C.textSec, fontSize: 11, fontWeight: '600' },
-  phoneText: { color: C.textMuted, fontSize: 12, marginTop: 4 },
+  phoneText: { color: C.textSec, fontSize: 12, marginTop: 4 },
   menuSection: { marginBottom: 20 },
-  sectionHeader: { color: C.primary, fontSize: 14, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12, paddingLeft: 4 },
+  sectionHeader: { color: C.primary, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12, paddingLeft: 4 },
   serviceItem: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: C.surface, 
+    backgroundColor: '#16161F', 
     padding: 16, 
-    borderRadius: 16, 
+    borderRadius: 20, 
     borderWidth: 1, 
-    borderColor: C.border, 
+    borderColor: 'rgba(255, 255, 255, 0.04)', 
     marginBottom: 10,
-    shadowColor: '#00000006',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 3,
-    elevation: 1,
   },
   serviceInfo: { flex: 1, marginRight: 16 },
   serviceName: { color: C.text, fontSize: 14, fontWeight: '700', marginBottom: 4 },
-  serviceDesc: { color: C.textMuted, fontSize: 12, lineHeight: 16, marginBottom: 8 },
+  serviceDesc: { color: C.textSec, fontSize: 12, lineHeight: 16, marginBottom: 8 },
   serviceMeta: { flexDirection: 'row', alignItems: 'center' },
-  servicePrice: { color: C.text, fontSize: 13, fontWeight: '700', marginRight: 12 },
+  servicePrice: { color: C.primary, fontSize: 13, fontWeight: '750', marginRight: 12 },
   serviceDuration: { color: C.textSec, fontSize: 12 },
   qtyControl: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: '#F8F9FC', 
+    backgroundColor: 'rgba(255, 255, 255, 0.04)', 
     borderRadius: 20, 
     borderWidth: 1, 
-    borderColor: C.border,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 4,
     paddingVertical: 2
   },
@@ -371,7 +380,7 @@ const s = StyleSheet.create({
     width: 32, 
     height: 32, 
     borderRadius: 16, 
-    backgroundColor: C.surface, 
+    backgroundColor: '#16161F', 
     justifyContent: 'center', 
     alignItems: 'center' 
   },
@@ -389,39 +398,39 @@ const s = StyleSheet.create({
     bottom: 0, 
     left: 0, 
     right: 0, 
-    backgroundColor: C.headerBg, 
+    backgroundColor: '#111118', 
     borderTopWidth: 1, 
-    borderTopColor: C.border, 
+    borderTopColor: 'rgba(255, 255, 255, 0.08)', 
     padding: 16, 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between',
-    shadowColor: '#00000010',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 1,
-    shadowRadius: 5,
-    elevation: 8,
   },
   cartBarLeft: { justifyContent: 'center' },
   cartBarCount: { color: C.textSec, fontSize: 12, fontWeight: '500' },
   cartBarTotal: { color: C.text, fontSize: 18, fontWeight: '800', marginTop: 2 },
-  cartBarBtn: { 
-    backgroundColor: C.primary, 
-    borderRadius: 12, 
-    paddingHorizontal: 24, 
-    paddingVertical: 12,
+  cartBarBtnWrapper: {
+    borderRadius: 12,
     shadowColor: C.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4
   },
+  cartBarBtn: { 
+    borderRadius: 12, 
+    paddingHorizontal: 24, 
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cartBarBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   visitCard: {
-    backgroundColor: '#E3F2FD',
-    borderRadius: 16,
+    backgroundColor: 'rgba(123, 97, 255, 0.06)',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#B3E5FC',
+    borderColor: 'rgba(123, 97, 255, 0.2)',
     padding: 16,
     marginTop: 10,
     marginBottom: 20,
@@ -432,24 +441,26 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   visitCardTitle: {
-    color: '#01579B',
+    color: '#7B61FF',
     fontSize: 15,
-    fontWeight: '750',
+    fontWeight: '700',
     marginLeft: 8,
   },
   visitCardDesc: {
-    color: '#0277BD',
+    color: '#8888AA',
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 12,
+  },
+  visitBtnWrapper: {
+    borderRadius: 12,
   },
   visitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0288D1',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
   },
   visitBtnText: {

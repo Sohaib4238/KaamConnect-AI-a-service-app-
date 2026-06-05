@@ -42,7 +42,7 @@ export default function SplashScreen({ onComplete }) {
 
   return (
     <View style={s.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
       {/* Background gradient effect using layered views */}
       <View style={s.bgTop} />
@@ -68,7 +68,7 @@ export default function SplashScreen({ onComplete }) {
 const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0A0A0F',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -76,13 +76,13 @@ const s = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0,
     height: '40%',
-    backgroundColor: '#F0FFF8',
+    backgroundColor: 'rgba(0, 200, 150, 0.04)',
   },
   bgBottom: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
     height: '30%',
-    backgroundColor: '#F8FFFC',
+    backgroundColor: 'rgba(123, 97, 255, 0.04)',
   },
   nameWrap: {
     flexDirection: 'row',
@@ -92,18 +92,18 @@ const s = StyleSheet.create({
   nameKaam: {
     fontSize: 48,
     fontWeight: '900',
-    color: '#1A2B4A',
+    color: '#F0F0F5',
     letterSpacing: -1.5,
   },
   nameConnect: {
     fontSize: 48,
     fontWeight: '900',
-    color: '#00C853',
+    color: '#00C896',
     letterSpacing: -1.5,
   },
   tagline: {
     fontSize: 16,
-    color: '#9999AA',
+    color: '#8888AA',
     fontWeight: '600',
     letterSpacing: 0.5,
   },

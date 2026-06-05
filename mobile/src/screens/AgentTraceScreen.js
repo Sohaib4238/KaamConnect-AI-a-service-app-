@@ -5,7 +5,7 @@ import {
   RefreshControl, StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 
 const BASE_URL_OPTIONS = [
@@ -19,28 +19,28 @@ import api from '../config/api';
 import { useAuth } from '../context/AuthContext';
 
 const AGENT_COLORS = {
-  'intent-parser': { bg: '#DBEAFE', border: '#93C5FD', text: '#1D4ED8', dot: '#2563EB' },
-  'discovery-agent': { bg: '#DCFCE7', border: '#86EFAC', text: '#166534', dot: '#16A34A' },
-  'ranking-agent': { bg: '#FEF9C3', border: '#FDE047', text: '#854D0E', dot: '#CA8A04' },
-  'booking-agent': { bg: '#FEE2E2', border: '#FCA5A5', text: '#991B1B', dot: '#DC2626' },
-  'follow-up-agent': { bg: '#F3E8FF', border: '#D8B4FE', text: '#6B21A8', dot: '#9333EA' },
+  'intent-parser': { bg: 'rgba(59, 130, 246, 0.1)', border: 'rgba(59, 130, 246, 0.2)', text: '#60A5FA', dot: '#3B82F6' },
+  'discovery-agent': { bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.2)', text: '#34D399', dot: '#10B981' },
+  'ranking-agent': { bg: 'rgba(245, 158, 11, 0.1)', border: 'rgba(245, 158, 11, 0.2)', text: '#FBBF24', dot: '#F59E0B' },
+  'booking-agent': { bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.2)', text: '#F87171', dot: '#EF4444' },
+  'follow-up-agent': { bg: 'rgba(139, 92, 246, 0.1)', border: 'rgba(139, 92, 246, 0.2)', text: '#A78BFA', dot: '#8B5CF6' },
 };
 
 const TOOL_COLORS = {
-  'groq-llm-api': '#7C3AED',
-  'google-maps-geocoding-api': '#1D4ED8',
-  'google-maps-places-api': '#1D4ED8',
-  'firestore': '#EA580C',
-  'firestore-write': '#EA580C',
-  'firestore-read': '#EA580C',
-  'firestore-transaction': '#EA580C',
-  'firestore-providers-collection': '#EA580C',
-  'firestore-write (bookings collection)': '#EA580C',
-  'firestore-write (follow-up record)': '#EA580C',
-  'cloud-scheduler': '#0891B2',
+  'groq-llm-api': '#7B61FF',
+  'google-maps-geocoding-api': '#3B82F6',
+  'google-maps-places-api': '#3B82F6',
+  'firestore': '#F5C842',
+  'firestore-write': '#F5C842',
+  'firestore-read': '#F5C842',
+  'firestore-transaction': '#F5C842',
+  'firestore-providers-collection': '#F5C842',
+  'firestore-write (bookings collection)': '#F5C842',
+  'firestore-write (follow-up record)': '#F5C842',
+  'cloud-scheduler': '#00C896',
   'firebase-cloud-messaging': '#F59E0B',
-  'haversine-distance-calculator': '#166534',
-  'roman-urdu-normalizer': '#7C3AED',
+  'haversine-distance-calculator': '#10B981',
+  'roman-urdu-normalizer': '#7B61FF',
 };
 
 const getToolColor = (tool) => {
@@ -156,7 +156,7 @@ export default function AgentTraceScreen({ navigation, route }) {
                 
                 {/* Inference */}
                 <View style={s.stepSection}>
-                  <Text style={[s.stepSectionLabel, { color: '#1D4ED8' }]}>
+                  <Text style={[s.stepSectionLabel, { color: '#60A5FA' }]}>
                     🧠 INFERRED
                   </Text>
                   <Text style={s.stepSectionText}>{step.inference}</Text>
@@ -164,7 +164,7 @@ export default function AgentTraceScreen({ navigation, route }) {
                 
                 {/* Decision */}
                 <View style={s.stepSection}>
-                  <Text style={[s.stepSectionLabel, { color: '#166534' }]}>
+                  <Text style={[s.stepSectionLabel, { color: '#34D399' }]}>
                     🎯 DECIDED
                   </Text>
                   <Text style={s.stepSectionText}>{step.decision}</Text>
@@ -172,7 +172,7 @@ export default function AgentTraceScreen({ navigation, route }) {
                 
                 {/* Action */}
                 <View style={s.stepSection}>
-                  <Text style={[s.stepSectionLabel, { color: '#854D0E' }]}>
+                  <Text style={[s.stepSectionLabel, { color: '#FBBF24' }]}>
                     ⚡ EXECUTED
                   </Text>
                   <Text style={s.stepSectionText}>{step.action}</Text>
@@ -211,8 +211,8 @@ export default function AgentTraceScreen({ navigation, route }) {
     const stepsCount = trace.steps?.length || 0;
     
     const statusColor = trace.final_status === 'booking_confirmed' 
-      ? { bg: '#DCFCE7', text: '#166534' }
-      : { bg: '#FEF9C3', text: '#854D0E' };
+      ? { bg: 'rgba(0, 200, 150, 0.1)', text: '#00C896' }
+      : { bg: 'rgba(245, 200, 66, 0.1)', text: '#F5C842' };
     
     return (
       <View key={trace.trace_id || trace.id} style={s.traceCard}>
@@ -255,10 +255,11 @@ export default function AgentTraceScreen({ navigation, route }) {
               </Text>
             )}
           </View>
-          <Ionicons 
-            name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-            size={20} color="#9999AA" 
-          />
+          {isExpanded ? (
+            <ChevronUp size={20} color="#8888AA" />
+          ) : (
+            <ChevronDown size={20} color="#8888AA" />
+          )}
         </TouchableOpacity>
         
         {/* Expanded content */}
@@ -313,7 +314,7 @@ export default function AgentTraceScreen({ navigation, route }) {
     return (
       <SafeAreaView style={s.container} edges={['top']}>
         <View style={s.loadingWrap}>
-          <ActivityIndicator size="large" color="#00C853" />
+          <ActivityIndicator size="large" color="#00C896" />
           <Text style={s.loadingText}>
             Loading agent traces...
           </Text>
@@ -324,14 +325,14 @@ export default function AgentTraceScreen({ navigation, route }) {
 
   return (
     <SafeAreaView style={s.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
       
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity 
           style={s.backBtn}
           onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#1A1A2E" />
+          <ArrowLeft size={20} color="#F0F0F5" />
         </TouchableOpacity>
         <View style={s.headerCenter}>
           <Text style={s.headerTitle}>🤖 Agent Trace Viewer</Text>
@@ -340,7 +341,7 @@ export default function AgentTraceScreen({ navigation, route }) {
           </Text>
         </View>
         <TouchableOpacity style={s.refreshBtn} onPress={onRefresh}>
-          <Ionicons name="refresh" size={20} color="#00C853" />
+          <RefreshCw size={18} color="#00C896" />
         </TouchableOpacity>
       </View>
 
@@ -379,7 +380,7 @@ export default function AgentTraceScreen({ navigation, route }) {
           <RefreshControl 
             refreshing={refreshing} 
             onRefresh={onRefresh}
-            tintColor="#00C853"
+            tintColor="#00C896"
           />
         }
       >
@@ -407,37 +408,41 @@ export default function AgentTraceScreen({ navigation, route }) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F6FA' },
+  container: { flex: 1, backgroundColor: '#0A0A0F' },
   loadingWrap: { 
     flex: 1, alignItems: 'center', justifyContent: 'center' 
   },
-  loadingText: { marginTop: 12, color: '#9999AA', fontSize: 14 },
+  loadingText: { marginTop: 12, color: '#8888AA', fontSize: 14 },
   header: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', paddingHorizontal: 16,
+    backgroundColor: '#0A0A0F', paddingHorizontal: 16,
     paddingVertical: 12, borderBottomWidth: 1,
-    borderBottomColor: '#E4E5EF',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
     zIndex: 10, elevation: 2,
   },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#16161F',
     alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   headerCenter: { flex: 1, alignItems: 'center' },
   headerTitle: { 
-    fontSize: 16, fontWeight: '800', color: '#1A1A2E' 
+    fontSize: 16, fontWeight: '800', color: '#F0F0F5' 
   },
-  headerSub: { fontSize: 11, color: '#9999AA', marginTop: 1 },
+  headerSub: { fontSize: 11, color: '#8888AA', marginTop: 1 },
   refreshBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#F0FFF4',
+    backgroundColor: 'rgba(0, 200, 150, 0.08)',
     alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 200, 150, 0.2)',
   },
   platformCard: {
-    backgroundColor: '#EFF6FF', margin: 12,
+    backgroundColor: '#16161F', margin: 12,
     borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: '#BFDBFE',
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.04)',
   },
   platformRow: { 
     flexDirection: 'row', alignItems: 'center', 
@@ -445,21 +450,22 @@ const s = StyleSheet.create({
   },
   platformIconWrap: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#1D4ED8',
+    backgroundColor: '#7B61FF',
     alignItems: 'center', justifyContent: 'center',
   },
   platformIcon: { fontSize: 20 },
   platformInfo: { flex: 1 },
   platformName: { 
-    fontSize: 15, fontWeight: '800', color: '#1D4ED8' 
+    fontSize: 15, fontWeight: '800', color: '#7B61FF' 
   },
-  platformDesc: { fontSize: 12, color: '#555570', marginTop: 1 },
+  platformDesc: { fontSize: 12, color: '#8888AA', marginTop: 1 },
   agentCountBadge: {
-    backgroundColor: '#1D4ED8', borderRadius: 10,
+    backgroundColor: 'rgba(0, 200, 150, 0.15)', borderRadius: 10,
     paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(0, 200, 150, 0.3)',
   },
   agentCountText: { 
-    color: '#fff', fontSize: 11, fontWeight: '800' 
+    color: '#00C896', fontSize: 11, fontWeight: '800' 
   },
   agentDotsRow: { flexDirection: 'row', gap: 8 },
   agentDot: {
@@ -472,14 +478,14 @@ const s = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { padding: 12 },
   sectionLabel: {
-    fontSize: 11, fontWeight: '800', color: '#9999AA',
+    fontSize: 11, fontWeight: '800', color: '#8888AA',
     textTransform: 'uppercase', letterSpacing: 1,
     marginBottom: 10,
   },
   traceCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 14,
+    backgroundColor: '#16161F', borderRadius: 14,
     marginBottom: 10, borderWidth: 1,
-    borderColor: '#E4E5EF', overflow: 'hidden',
+    borderColor: 'rgba(255, 255, 255, 0.04)', overflow: 'hidden',
   },
   traceHeader: {
     flexDirection: 'row', alignItems: 'center',
@@ -488,11 +494,11 @@ const s = StyleSheet.create({
   traceHeaderLeft: { flex: 1 },
   traceId: { 
     fontSize: 11, fontWeight: '700',
-    color: '#1D4ED8', fontVariant: ['tabular-nums'],
+    color: '#7B61FF', fontVariant: ['tabular-nums'],
     marginBottom: 3,
   },
   traceInput: { 
-    fontSize: 13, color: '#1A1A2E',
+    fontSize: 13, color: '#F0F0F5',
     fontStyle: 'italic', marginBottom: 6,
   },
   traceMetaRow: { 
@@ -502,26 +508,26 @@ const s = StyleSheet.create({
     paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
   },
   statusText: { fontSize: 10, fontWeight: '700' },
-  traceDuration: { fontSize: 10, color: '#9999AA' },
-  traceAgentCount: { fontSize: 10, color: '#9999AA' },
+  traceDuration: { fontSize: 10, color: '#8888AA' },
+  traceAgentCount: { fontSize: 10, color: '#8888AA' },
   traceBookingId: { 
-    fontSize: 10, color: '#9999AA', marginTop: 3 
+    fontSize: 10, color: '#8888AA', marginTop: 3 
   },
   traceExpanded: {
-    borderTopWidth: 1, borderTopColor: '#E4E5EF',
+    borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)',
     padding: 12,
   },
   agBadge: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#EFF6FF', borderRadius: 10,
+    backgroundColor: 'rgba(123, 97, 255, 0.08)', borderRadius: 10,
     padding: 10, marginBottom: 14, gap: 10,
   },
   agBadgeIcon: { fontSize: 20 },
   agBadgeText: { flex: 1 },
   agBadgeTitle: { 
-    fontSize: 13, fontWeight: '800', color: '#1D4ED8' 
+    fontSize: 13, fontWeight: '800', color: '#7B61FF' 
   },
-  agBadgeSub: { fontSize: 11, color: '#555570', marginTop: 1 },
+  agBadgeSub: { fontSize: 11, color: '#8888AA', marginTop: 1 },
   timeline: { gap: 0 },
   timelineItem: { flexDirection: 'row', gap: 10 },
   timelineLeft: { 
@@ -536,7 +542,7 @@ const s = StyleSheet.create({
     color: '#fff', fontSize: 11, fontWeight: '900' 
   },
   timelineLine: {
-    width: 2, flex: 1, backgroundColor: '#E4E5EF',
+    width: 2, flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)',
     marginTop: 2, marginBottom: 2, minHeight: 16,
   },
   stepCard: {
@@ -560,16 +566,16 @@ const s = StyleSheet.create({
   },
   stepSection: { marginBottom: 8 },
   stepSectionLabel: {
-    fontSize: 9, fontWeight: '800', color: '#854D0E',
+    fontSize: 9, fontWeight: '800',
     textTransform: 'uppercase', letterSpacing: 0.8,
     marginBottom: 3,
   },
   stepSectionText: { 
-    fontSize: 12, color: '#1A1A2E', lineHeight: 18 
+    fontSize: 12, color: '#F0F0F5', lineHeight: 18 
   },
   toolsSection: { marginBottom: 8 },
   toolsLabel: {
-    fontSize: 9, fontWeight: '800', color: '#374151',
+    fontSize: 9, fontWeight: '800', color: '#8888AA',
     textTransform: 'uppercase', letterSpacing: 0.8,
     marginBottom: 6,
   },
@@ -579,28 +585,28 @@ const s = StyleSheet.create({
     borderRadius: 6,
   },
   toolChipText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  stepDuration: { fontSize: 10, color: '#9999AA', textAlign: 'right' },
+  stepDuration: { fontSize: 10, color: '#8888AA', textAlign: 'right' },
   googleToolsSection: {
     marginTop: 12, borderTopWidth: 1,
-    borderTopColor: '#E4E5EF', paddingTop: 12,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)', paddingTop: 12,
   },
   googleToolsTitle: {
-    fontSize: 11, fontWeight: '800', color: '#555570',
+    fontSize: 11, fontWeight: '800', color: '#8888AA',
     textTransform: 'uppercase', letterSpacing: 0.5,
     marginBottom: 8,
   },
   googleToolsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   googleToolChip: {
-    backgroundColor: '#1D4ED8', paddingHorizontal: 10,
+    backgroundColor: 'rgba(123, 97, 255, 0.15)', borderWidth: 1, borderColor: 'rgba(123, 97, 255, 0.3)', paddingHorizontal: 10,
     paddingVertical: 4, borderRadius: 8,
   },
-  googleToolText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  googleToolText: { color: '#7B61FF', fontSize: 10, fontWeight: '700' },
   noSteps: {
-    backgroundColor: '#F5F6FA', borderRadius: 10,
+    backgroundColor: '#111118', borderRadius: 10,
     padding: 16, alignItems: 'center',
   },
   noStepsText: {
-    color: '#9999AA', fontSize: 12, textAlign: 'center',
+    color: '#8888AA', fontSize: 12, textAlign: 'center',
     lineHeight: 18,
   },
   emptyState: { 
@@ -608,11 +614,11 @@ const s = StyleSheet.create({
   },
   emptyEmoji: { fontSize: 48, marginBottom: 16 },
   emptyTitle: { 
-    fontSize: 18, fontWeight: '800', color: '#1A1A2E',
+    fontSize: 18, fontWeight: '800', color: '#F0F0F5',
     marginBottom: 8,
   },
   emptySub: {
-    fontSize: 14, color: '#9999AA', textAlign: 'center',
+    fontSize: 14, color: '#8888AA', textAlign: 'center',
     lineHeight: 22,
   },
 });

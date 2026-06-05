@@ -1,0 +1,422 @@
+# 🏗️ AI Service Orchestrator — Hackathon Master Plan
+
+## 1. Executive Summary
+
+We're building **"KaamConnect"** — an agentic AI system that automates finding, booking, and managing informal economy service providers (plumbers, electricians, tutors, etc.) through natural language in **Urdu, Roman Urdu, and English**.
+
+> [!IMPORTANT]
+> **"Google Antigravity" = This IDE.** The hackathon requires us to use Antigravity (this tool) as the core platform for orchestrating agent workflows, integrating tools, and executing actions. All development happens here.
+
+---
+
+## 2. System Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        MA["📱 Mobile App (React Native Expo)"]
+        WA["🌐 Web App (Next.js) — Optional"]
+    end
+
+    subgraph "API Gateway"
+        API["🔀 Express.js REST API + WebSocket"]
+    end
+
+    subgraph "Agentic AI Core (Gemini)"
+        ORC["🧠 Orchestrator Agent"]
+        NLU["📝 Intent Agent (NLU)"]
+        DISC["🔍 Discovery Agent"]
+        MATCH["⚖️ Matching Agent"]
+        BOOK["📅 Booking Agent"]
+        FOLLOW["🔔 Follow-Up Agent"]
+    end
+
+    subgraph "Data & Services"
+        DB["💾 SQLite (Bookings, Providers)"]
+        MAPS["🗺️ Google Maps/Places API"]
+        MOCK["📊 Mock Provider Dataset"]
+    end
+
+    MA --> API
+    WA --> API
+    API --> ORC
+    ORC --> NLU
+    ORC --> DISC
+    ORC --> MATCH
+    ORC --> BOOK
+    ORC --> FOLLOW
+    DISC --> MAPS
+    DISC --> MOCK
+    BOOK --> DB
+    FOLLOW --> DB
+```
+
+### Architecture Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **LLM** | Gemini 2.0 Flash | Free tier, fast, multilingual (Urdu/English), function calling |
+| **Backend** | Node.js + Express | Fast prototyping, native JSON, great Gemini SDK |
+| **Mobile** | React Native Expo | Cross-platform, fast dev cycle, EAS build |
+| **Database** | SQLite (better-sqlite3) | Zero config, file-based, perfect for hackathon |
+| **Agent Pattern** | ReAct Loop with Orchestrator | Multi-agent with traceable reasoning logs |
+
+---
+
+## 3. Agent Design — The Brain
+
+### 3.1 Agent Pipeline
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant O as Orchestrator
+    participant I as Intent Agent
+    participant D as Discovery Agent
+    participant M as Matching Agent
+    participant B as Booking Agent
+    participant F as Follow-Up Agent
+
+    U->>O: "Mujhe kal subah G-13 mein AC technician chahiye"
+    O->>I: Parse intent
+    I-->>O: {service: "AC Technician", location: "G-13", time: "tomorrow morning"}
+    O->>D: Find providers near G-13 for AC repair
+    D-->>O: [Provider1, Provider2, Provider3]
+    O->>M: Rank by distance + rating + availability
+    M-->>O: {best: "Ali AC Services", reason: "closest + highest rated"}
+    O->>B: Book Ali AC Services at 10:00 AM
+    B-->>O: {booking_id: "BK-001", status: "confirmed"}
+    O->>F: Schedule reminder 1hr before
+    F-->>O: {reminder: "scheduled for 9:00 AM"}
+    O-->>U: Full response with reasoning
+```
+
+### 3.2 Agent Specifications
+
+#### 🧠 Orchestrator Agent
+- **Role**: Central coordinator — receives user input, delegates to sub-agents, assembles final response
+- **Tools**: All sub-agent invocations
+- **Output**: Structured JSON with reasoning trace
+
+#### 📝 Intent Agent (NLU)
+- **Role**: Parse multilingual input → structured intent
+- **Handles**: Urdu, Roman Urdu, English (Gemini handles this natively)
+- **Output**: `{ service_type, location, time_preference, urgency }`
+- **Tool**: `parse_user_intent`
+
+#### 🔍 Discovery Agent
+- **Role**: Find providers matching service type + location
+- **Tools**: `search_providers` (mock DB), `search_google_maps` (optional)
+- **Output**: List of candidate providers with metadata
+
+#### ⚖️ Matching Agent
+- **Role**: Score and rank providers
+- **Scoring**: `score = (0.4 × proximity) + (0.3 × rating) + (0.3 × availability)`
+- **Tool**: `rank_providers`
+- **Output**: Ranked list with explanation
+
+#### 📅 Booking Agent
+- **Role**: Simulate booking, update DB, generate confirmation
+- **Tools**: `create_booking`, `check_availability`, `generate_receipt`
+- **Output**: Booking confirmation with receipt
+
+#### 🔔 Follow-Up Agent
+- **Role**: Schedule reminders, status updates, completion confirmation
+- **Tools**: `schedule_reminder`, `send_status_update`
+- **Output**: Scheduled follow-up actions
+
+---
+
+## 4. Data Models
+
+### 4.1 Provider Schema
+```json
+{
+  "id": "PRV-001",
+  "name": "Ali AC Services",
+  "name_urdu": "علی اے سی سروسز",
+  "service_type": "ac_technician",
+  "category": "home_services",
+  "location": { "area": "G-13", "city": "Islamabad", "lat": 33.6501, "lng": 72.9747 },
+  "rating": 4.7,
+  "total_reviews": 142,
+  "hourly_rate": 1500,
+  "availability": { "mon-sat": "08:00-20:00", "sun": "10:00-16:00" },
+  "phone": "+92-300-1234567",
+  "verified": true
+}
+```
+
+### 4.2 Booking Schema
+```json
+{
+  "booking_id": "BK-20260515-001",
+  "user_name": "Demo User",
+  "provider_id": "PRV-001",
+  "service_type": "ac_technician",
+  "status": "confirmed",
+  "scheduled_time": "2026-05-15T10:00:00+05:00",
+  "location": "G-13, Islamabad",
+  "estimated_cost": 3000,
+  "created_at": "2026-05-14T14:30:00+05:00",
+  "reminders": [{ "time": "2026-05-15T09:00:00+05:00", "type": "pre_appointment" }],
+  "receipt_generated": true
+}
+```
+
+### 4.3 Mock Dataset (50+ providers across Islamabad)
+
+| Category | Service Types |
+|----------|--------------|
+| Home Services | Plumber, Electrician, AC Technician, Carpenter, Painter |
+| Education | Tutor (Math, Science, English, Quran), Music Teacher |
+| Beauty | Beautician, Barber, Mehndi Artist |
+| Automotive | Mechanic, Car Washer, Denter/Painter |
+| Cleaning | House Cleaner, Pest Control, Laundry |
+
+---
+
+## 5. Tech Stack & Project Structure
+
+```
+kaamconnect/
+├── backend/                    # Node.js Express API
+│   ├── src/
+│   │   ├── server.js           # Entry point
+│   │   ├── routes/
+│   │   │   ├── chat.js         # POST /api/chat — main endpoint
+│   │   │   ├── bookings.js     # Booking CRUD
+│   │   │   └── providers.js    # Provider listing
+│   │   ├── agents/
+│   │   │   ├── orchestrator.js # Master agent
+│   │   │   ├── intentAgent.js  # NLU parsing
+│   │   │   ├── discoveryAgent.js
+│   │   │   ├── matchingAgent.js
+│   │   │   ├── bookingAgent.js
+│   │   │   └── followUpAgent.js
+│   │   ├── tools/              # Gemini function declarations
+│   │   │   ├── providerTools.js
+│   │   │   ├── bookingTools.js
+│   │   │   ├── mapTools.js
+│   │   │   └── notificationTools.js
+│   │   ├── data/
+│   │   │   ├── providers.json  # Mock provider dataset
+│   │   │   └── database.js     # SQLite setup
+│   │   └── utils/
+│   │       ├── logger.js       # Agent trace logging
+│   │       └── geocoder.js     # Location helpers
+│   ├── package.json
+│   └── .env
+├── mobile/                     # React Native Expo App
+│   ├── app/                    # Expo Router (file-based routing)
+│   │   ├── (tabs)/
+│   │   │   ├── index.tsx       # Chat screen (main)
+│   │   │   ├── bookings.tsx    # My bookings
+│   │   │   └── profile.tsx     # Settings
+│   │   └── _layout.tsx
+│   ├── components/
+│   │   ├── ChatBubble.tsx
+│   │   ├── ProviderCard.tsx
+│   │   ├── BookingConfirmation.tsx
+│   │   ├── AgentTrace.tsx      # Shows reasoning steps
+│   │   └── LanguageSelector.tsx
+│   ├── services/
+│   │   └── api.ts
+│   ├── package.json
+│   └── app.json
+├── web/                        # Next.js Web Dashboard (optional)
+│   └── ...
+└── README.md
+```
+
+---
+
+## 6. API Design
+
+### Core Endpoint: `POST /api/chat`
+
+```json
+// Request
+{
+  "message": "Mujhe kal subah G-13 mein AC technician chahiye",
+  "session_id": "sess_abc123",
+  "language": "auto"
+}
+
+// Response
+{
+  "response": "Maine aap ke liye G-13 mein best AC technician dhundh liya hai...",
+  "intent": {
+    "service_type": "ac_technician",
+    "location": "G-13, Islamabad",
+    "time": "2026-05-15T10:00:00+05:00"
+  },
+  "providers": [
+    { "name": "Ali AC Services", "distance": "2.1 km", "rating": 4.7, "available": true }
+  ],
+  "booking": {
+    "booking_id": "BK-20260515-001",
+    "status": "confirmed",
+    "time": "10:00 AM",
+    "provider": "Ali AC Services"
+  },
+  "follow_up": {
+    "reminder": "Scheduled for 9:00 AM tomorrow"
+  },
+  "agent_trace": [
+    { "step": 1, "agent": "Intent", "action": "Parsed multilingual input", "result": "..." },
+    { "step": 2, "agent": "Discovery", "action": "Searched 50 providers", "result": "..." },
+    { "step": 3, "agent": "Matching", "action": "Ranked by proximity+rating", "result": "..." },
+    { "step": 4, "agent": "Booking", "action": "Created booking BK-001", "result": "..." },
+    { "step": 5, "agent": "FollowUp", "action": "Scheduled reminder", "result": "..." }
+  ]
+}
+```
+
+---
+
+## 7. Gemini Integration (Function Calling)
+
+```javascript
+// Tool declarations for Gemini
+const tools = [{
+  functionDeclarations: [
+    {
+      name: "parse_user_intent",
+      description: "Parse natural language service request into structured data",
+      parameters: {
+        type: "object",
+        properties: {
+          service_type: { type: "string" },
+          location: { type: "string" },
+          time_preference: { type: "string" },
+          urgency: { type: "string", enum: ["low", "medium", "high"] }
+        }
+      }
+    },
+    {
+      name: "search_providers",
+      description: "Search for service providers by type and location",
+      parameters: { /* ... */ }
+    },
+    {
+      name: "rank_providers",
+      description: "Rank providers by distance, rating, and availability",
+      parameters: { /* ... */ }
+    },
+    {
+      name: "create_booking",
+      description: "Create a booking with a provider",
+      parameters: { /* ... */ }
+    },
+    {
+      name: "schedule_reminder",
+      description: "Schedule follow-up reminders",
+      parameters: { /* ... */ }
+    }
+  ]
+}];
+```
+
+---
+
+## 8. Scoring Alignment with Evaluation Criteria
+
+| Criteria (Weight) | How We Score High |
+|---|---|
+| **Antigravity Usage (25%)** | All development orchestrated through Antigravity. Agent workflows designed, coded, tested here. MCP tools used. Clear documentation of Antigravity's role. |
+| **Agentic Reasoning (20%)** | 5 specialized agents in a ReAct pipeline. Full trace logs showing planning→decision→action→follow-up. Autonomous multi-step reasoning. |
+| **Matching Quality (20%)** | Weighted scoring algorithm (proximity 40%, rating 30%, availability 30%). Clear natural-language reasoning for each decision. |
+| **Action Simulation (15%)** | End-to-end booking: availability check → slot reservation → confirmation message → receipt generation → DB update. |
+| **Technical Implementation (10%)** | Clean MVC architecture, proper API design, error handling, SQLite persistence, modular agent system. |
+| **Innovation & UX (10%)** | Trilingual support, WhatsApp-style chat UI, live agent trace visualization, provider cards with maps. |
+
+---
+
+## 9. Execution Timeline
+
+### Phase 1: Foundation (2-3 hours)
+- [ ] Initialize backend (Express + SQLite + Gemini SDK)
+- [ ] Create mock provider dataset (50+ providers, 5 categories, Islamabad areas)
+- [ ] Set up database schemas (providers, bookings, reminders)
+- [ ] Initialize Expo mobile app with routing
+
+### Phase 2: Agent Core (3-4 hours)
+- [ ] Build Intent Agent with Gemini function calling
+- [ ] Build Discovery Agent with mock DB search
+- [ ] Build Matching Agent with scoring algorithm
+- [ ] Build Booking Agent with DB persistence
+- [ ] Build Follow-Up Agent with reminder scheduling
+- [ ] Build Orchestrator that chains all agents
+
+### Phase 3: API & Integration (2-3 hours)
+- [ ] Wire up `/api/chat` endpoint with full agent pipeline
+- [ ] Add agent trace logging system
+- [ ] Add session management for multi-turn conversations
+- [ ] Test with Urdu/Roman Urdu/English inputs
+
+### Phase 4: Mobile App (3-4 hours)
+- [ ] Chat screen with WhatsApp-style UI
+- [ ] Provider cards with ratings and distance
+- [ ] Booking confirmation screen
+- [ ] Agent trace/reasoning viewer
+- [ ] Bookings history tab
+
+### Phase 5: Polish & Demo (2-3 hours)
+- [ ] End-to-end testing of complete flow
+- [ ] Edge case handling (no providers, ambiguous input, etc.)
+- [ ] README documentation
+- [ ] Record 3-5 minute demo video
+- [ ] Final agent trace verification
+
+---
+
+## 10. Key Differentiators (Innovation)
+
+1. **Live Agent Trace Visualization** — Users can see each agent's reasoning in real-time (like watching the AI "think")
+2. **Trilingual NLU** — Seamless Urdu ↔ Roman Urdu ↔ English with no language selection needed
+3. **Smart Time Parsing** — "kal subah" → tomorrow 8-12 AM, "aaj shaam" → today 5-8 PM
+4. **Provider Trust Scores** — Composite score combining ratings, completion rate, response time
+5. **Conversational Follow-up** — Multi-turn: "Can you find someone cheaper?" works naturally
+
+---
+
+## 11. Risk Mitigation
+
+| Risk | Mitigation |
+|------|-----------|
+| Gemini API rate limits | Use mock responses as fallback, cache common queries |
+| Urdu parsing fails | Gemini 2.0 Flash has strong multilingual support; add fallback parsing |
+| Time constraints | Core flow first (chat → book), polish later |
+| Mobile build issues | Use Expo Go for dev, only build APK for final demo |
+| No Google Maps API key | Full mock dataset with pre-computed coordinates |
+
+---
+
+## 12. Environment Setup Needed
+
+```bash
+# Backend
+npm init -y
+npm install express cors dotenv @google/genai better-sqlite3 uuid
+
+# Mobile
+npx create-expo-app@latest mobile --template tabs
+cd mobile && npm install axios
+```
+
+> [!TIP]
+> **API Key**: You'll need a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey). It's free for Gemini 2.0 Flash.
+
+---
+
+## 13. What "Google Antigravity" Means for Documentation
+
+In the README and demo, we emphasize:
+
+1. **Antigravity orchestrated the entire development** — agent design, code generation, testing, debugging
+2. **MCP tools were used** for project structure analysis, code review, and integration
+3. **Multi-surface autonomy** — Antigravity managed editor, terminal, and browser tasks
+4. **Artifact system** — Implementation plans, architecture docs, and task tracking through Antigravity artifacts
+
+This positions our project as a **meta-demonstration**: Antigravity (an agentic AI) was used to build an agentic AI system.

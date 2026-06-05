@@ -119,54 +119,56 @@ export default function BookingConfirmedScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: '#0A0A0F' },
   content: { padding: 16 },
   successHeader: { 
     alignItems: 'center', padding: 24, 
-    backgroundColor: '#fff', borderRadius: 16, marginBottom: 16 
+    backgroundColor: '#16161F', borderRadius: 16, marginBottom: 16,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.04)',
   },
   checkmark: { fontSize: 48, marginBottom: 8 },
   confirmedTitle: { 
-    fontSize: 24, fontWeight: 'bold', color: '#1a73e8' 
+    fontSize: 24, fontWeight: 'bold', color: '#00C896' 
   },
   bookingId: { 
-    fontSize: 12, color: '#999', marginTop: 4, fontFamily: 'monospace' 
+    fontSize: 12, color: '#8888AA', marginTop: 4, fontFamily: 'monospace' 
   },
   card: { 
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, 
-    marginBottom: 12, elevation: 2, shadowOpacity: 0.05 
+    backgroundColor: '#16161F', borderRadius: 16, padding: 16, 
+    marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.04)',
   },
   cardTitle: { 
-    fontSize: 13, fontWeight: '700', color: '#666', 
+    fontSize: 13, fontWeight: '700', color: '#8888AA', 
     marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5
   },
   providerName: { 
-    fontSize: 20, fontWeight: 'bold', color: '#333', marginBottom: 8 
+    fontSize: 20, fontWeight: 'bold', color: '#F0F0F5', marginBottom: 8 
   },
   row: { flexDirection: 'row', gap: 16, marginBottom: 4 },
-  detail: { fontSize: 15, color: '#555', marginBottom: 4 },
+  detail: { fontSize: 15, color: '#8888AA', marginBottom: 4 },
   price: { 
-    fontSize: 16, fontWeight: '600', color: '#1a73e8', marginTop: 4 
+    fontSize: 16, fontWeight: '600', color: '#00C896', marginTop: 4 
   },
   reasoning: { 
-    fontSize: 14, color: '#555', lineHeight: 22, fontStyle: 'italic' 
+    fontSize: 14, color: '#8888AA', lineHeight: 22, fontStyle: 'italic' 
   },
-  altRow: { paddingVertical: 6, borderTopWidth: 1, borderTopColor: '#f0f0f0' },
-  altName: { fontSize: 15, fontWeight: '600', color: '#333' },
-  altDetail: { fontSize: 13, color: '#888', marginTop: 2 },
+  altRow: { paddingVertical: 8, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.04)' },
+  altName: { fontSize: 15, fontWeight: '600', color: '#F0F0F5' },
+  altDetail: { fontSize: 13, color: '#8888AA', marginTop: 2 },
   reminderCard: { 
-    backgroundColor: '#e8f4fd', borderRadius: 12, padding: 14, 
-    marginBottom: 16 
+    backgroundColor: 'rgba(0, 200, 150, 0.06)', borderRadius: 12, padding: 14, 
+    marginBottom: 16, borderWidth: 1, borderColor: 'rgba(0, 200, 150, 0.2)',
   },
-  reminderText: { fontSize: 14, color: '#1a73e8', textAlign: 'center' },
+  reminderText: { fontSize: 14, color: '#00C896', textAlign: 'center' },
   traceBtn: { 
-    backgroundColor: '#333', padding: 16, borderRadius: 12, 
-    alignItems: 'center', marginBottom: 10 
+    backgroundColor: '#111118', padding: 16, borderRadius: 12, 
+    alignItems: 'center', marginBottom: 10,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  traceBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  traceBtnText: { color: '#F0F0F5', fontWeight: '600', fontSize: 15 },
   homeBtn: { 
-    backgroundColor: '#1a73e8', padding: 16, borderRadius: 12, 
+    backgroundColor: '#00C896', padding: 16, borderRadius: 12, 
     alignItems: 'center', marginBottom: 30 
   },
-  homeBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 }
+  homeBtnText: { color: '#FFFFFF', fontWeight: '600', fontSize: 15 }
 });

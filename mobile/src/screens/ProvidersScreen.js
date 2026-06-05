@@ -106,7 +106,7 @@ export default function ProvidersScreen({ apiUrl }) {
         <TextInput 
           style={styles.searchInput}
           placeholder="Search by name, sector (e.g. G-13, F-8)..."
-          placeholderTextColor="#8B949E"
+          placeholderTextColor="#8888AA"
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -120,7 +120,7 @@ export default function ProvidersScreen({ apiUrl }) {
       {/* List content */}
       {loading ? (
         <View style={styles.centerArea}>
-          <ActivityIndicator size="large" color="#00C853" />
+          <ActivityIndicator size="large" color="#00C896" />
           <Text style={styles.loadingText}>Fetching available providers...</Text>
         </View>
       ) : (
@@ -149,12 +149,12 @@ export default function ProvidersScreen({ apiUrl }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D1117',
+    backgroundColor: '#0A0A0F',
   },
   categoriesArea: {
-    backgroundColor: '#161B22',
+    backgroundColor: '#111118',
     borderBottomWidth: 1,
-    borderBottomColor: '#21262D',
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
   },
   catScroll: {
     paddingHorizontal: 16,
@@ -162,37 +162,37 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   catChip: {
-    backgroundColor: '#21262D',
+    backgroundColor: '#16161F',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#30363D',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   catChipActive: {
-    backgroundColor: '#00C853',
-    borderColor: '#00C853',
+    backgroundColor: '#00C896',
+    borderColor: '#00C896',
   },
   catChipText: {
-    color: '#C9D1D9',
+    color: '#8888AA',
     fontSize: 12,
     fontWeight: '600',
   },
   catChipTextActive: {
-    color: '#0D1117',
+    color: '#FFFFFF',
     fontWeight: '700',
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#161B22',
+    backgroundColor: '#16161F',
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 4,
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#30363D',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   searchIcon: {
     fontSize: 14,
@@ -201,11 +201,11 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     paddingVertical: 10,
-    color: '#FFFFFF',
+    color: '#F0F0F5',
     fontSize: 13,
   },
   clearBtn: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 16,
     paddingHorizontal: 8,
   },
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 13,
     marginTop: 12,
   },
@@ -232,12 +232,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyTitle: {
-    color: '#FFFFFF',
+    color: '#F0F0F5',
     fontSize: 16,
     fontWeight: '700',
   },
   emptyDesc: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 12,
     textAlign: 'center',
     marginTop: 6,

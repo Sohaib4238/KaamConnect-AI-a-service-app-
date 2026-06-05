@@ -96,14 +96,14 @@ export default function BookingsScreen({ apiUrl }) {
 
       {loading ? (
         <View style={styles.centerArea}>
-          <ActivityIndicator size="large" color="#00C853" />
+          <ActivityIndicator size="large" color="#00C896" />
         </View>
       ) : (
         <FlatList 
           data={bookings}
           keyExtractor={(item) => item.booking_id}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00C853" />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00C896" />
           }
           renderItem={({ item }) => (
             <TouchableOpacity 
@@ -179,17 +179,17 @@ export default function BookingsScreen({ apiUrl }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D1117',
+    backgroundColor: '#0A0A0F',
   },
   topInfo: {
-    backgroundColor: '#161B22',
+    backgroundColor: '#111118',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#21262D',
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
   },
   infoText: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 11,
     fontWeight: '500',
   },
@@ -202,10 +202,10 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
-    backgroundColor: '#161B22',
+    backgroundColor: '#16161F',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#30363D',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
     padding: 16,
     marginBottom: 16,
   },
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bookingId: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 12,
     fontFamily: 'monospace',
     fontWeight: '600',
@@ -229,33 +229,33 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   confirmedBadge: {
-    backgroundColor: 'rgba(0, 200, 83, 0.15)',
-    color: '#00C853',
+    backgroundColor: 'rgba(0, 200, 150, 0.15)',
+    color: '#00C896',
     borderWidth: 1,
-    borderColor: '#00C853',
+    borderColor: 'rgba(0, 200, 150, 0.3)',
   },
   completedBadge: {
-    backgroundColor: 'rgba(56, 142, 60, 0.2)',
-    color: '#81C784',
+    backgroundColor: 'rgba(0, 200, 150, 0.08)',
+    color: '#00C896',
   },
   cancelledBadge: {
-    backgroundColor: 'rgba(255, 82, 82, 0.15)',
-    color: '#FF5252',
+    backgroundColor: 'rgba(255, 92, 92, 0.15)',
+    color: '#FF5C5C',
   },
   serviceType: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#F0F0F5',
     marginTop: 6,
     letterSpacing: -0.3,
   },
   detailsBox: {
-    backgroundColor: '#0D1117',
+    backgroundColor: '#111118',
     borderRadius: 12,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#21262D',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
     gap: 6,
   },
   detailRow: {
@@ -264,16 +264,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   detailLabel: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 12,
   },
   detailValue: {
-    color: '#C9D1D9',
+    color: '#F0F0F5',
     fontSize: 12,
     fontWeight: '600',
   },
   costValue: {
-    color: '#00C853',
+    color: '#00C896',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -283,14 +283,14 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#21262D',
+    borderTopColor: 'rgba(255, 255, 255, 0.04)',
   },
   reminderIcon: {
     fontSize: 12,
     marginRight: 6,
   },
   reminderText: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 10,
   },
   emptyArea: {
@@ -303,12 +303,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   emptyTitle: {
-    color: '#FFFFFF',
+    color: '#F0F0F5',
     fontSize: 16,
     fontWeight: '700',
   },
   emptyDesc: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 12,
     textAlign: 'center',
     marginTop: 6,

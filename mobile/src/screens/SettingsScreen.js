@@ -51,7 +51,7 @@ export default function SettingsScreen({ apiUrl, setApiUrl }) {
           value={inputUrl}
           onChangeText={setInputUrl}
           placeholder="http://192.168.1.5:3000"
-          placeholderTextColor="#8B949E"
+          placeholderTextColor="#8888AA"
           autoCapitalize="none"
           keyboardType="url"
           autoCorrect={false}
@@ -117,45 +117,45 @@ export default function SettingsScreen({ apiUrl, setApiUrl }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D1117',
+    backgroundColor: '#0A0A0F',
   },
   content: {
     padding: 16,
     gap: 16,
   },
   card: {
-    backgroundColor: '#161B22',
+    backgroundColor: '#16161F',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#30363D',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
     padding: 16,
   },
   cardTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#F0F0F5',
     marginBottom: 6,
   },
   cardDesc: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 12,
     lineHeight: 18,
     marginBottom: 16,
   },
   label: {
-    color: '#C9D1D9',
+    color: '#F0F0F5',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#0D1117',
+    backgroundColor: '#111118',
     borderWidth: 1,
-    borderColor: '#30363D',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#FFFFFF',
+    color: '#F0F0F5',
     fontSize: 14,
     marginBottom: 16,
   },
@@ -165,27 +165,27 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     flex: 2,
-    backgroundColor: '#00C853',
+    backgroundColor: '#00C896',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
   saveBtnText: {
-    color: '#0D1117',
+    color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 13,
   },
   resetBtn: {
     flex: 1,
-    backgroundColor: '#21262D',
+    backgroundColor: '#111118',
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#30363D',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   resetBtnText: {
-    color: '#C9D1D9',
+    color: '#8888AA',
     fontWeight: '600',
     fontSize: 13,
   },
@@ -195,32 +195,32 @@ const styles = StyleSheet.create({
   },
   presetChip: {
     flex: 1,
-    backgroundColor: '#0D1117',
+    backgroundColor: '#111118',
     borderWidth: 1,
-    borderColor: '#30363D',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     padding: 12,
     borderRadius: 12,
   },
   presetLabel: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 11,
     fontWeight: '600',
   },
   presetVal: {
-    color: '#00C853',
+    color: '#00C896',
     fontSize: 12,
     fontWeight: '700',
     marginTop: 4,
   },
   infoCard: {
-    backgroundColor: '#0D1117',
+    backgroundColor: '#111118',
     borderWidth: 1,
-    borderColor: '#21262D',
+    borderColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 16,
     padding: 16,
   },
   infoHeading: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -231,14 +231,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#161B22',
+    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
   },
   specKey: {
-    color: '#8B949E',
+    color: '#8888AA',
     fontSize: 12,
   },
   specVal: {
-    color: '#C9D1D9',
+    color: '#F0F0F5',
     fontSize: 12,
     fontWeight: '600',
   },

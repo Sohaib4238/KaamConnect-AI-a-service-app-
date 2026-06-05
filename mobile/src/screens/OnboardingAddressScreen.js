@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import LeafletMap from '../components/LeafletMap';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import { Compass, Map, ArrowLeft, MapPin } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 
 export default function OnboardingAddressScreen() {
@@ -30,6 +30,39 @@ export default function OnboardingAddressScreen() {
   const mapRef = useRef(null);
 
   const LABELS = ['Home', 'Office', 'Parents', 'Other'];
+
+  const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || 'AIzaSyD4ar1JvuWVEgClUXjxW87KfpT3Sx9kfuA';
+
+  const reverseGeocode = async (coords) => {
+    const { latitude, longitude } = coords;
+    try {
+      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${GOOGLE_MAPS_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+        const formatted = result.formatted_address;
+        const components = result.address_components;
+        const locality = components.find(c => c.types.includes('locality'))?.long_name || 'Karachi';
+        return { address: formatted, city: locality };
+      }
+    } catch (e) {
+      console.error('REST reverse geocode failed:', e);
+    }
+    // Fallback: use expo-location reverse geocoding
+    try {
+      const [place] = await Location.reverseGeocodeAsync(coords);
+      if (place) {
+        const addr = [
+          place.streetNumber, place.street, place.district
+        ].filter(Boolean).join(', ');
+        return { address: addr, city: place.city || 'Karachi' };
+      }
+    } catch (e2) {
+      console.error('Expo reverse geocode failed:', e2);
+    }
+    return null;
+  };
 
   const useCurrentLocation = async () => {
     setGpsLoading(true);
@@ -54,14 +87,11 @@ export default function OnboardingAddressScreen() {
       mapRef.current?.animateToRegion(region, 800);
       
       // Reverse geocode
-      const [place] = await Location.reverseGeocodeAsync(coords);
+      const place = await reverseGeocode(coords);
       if (place) {
-        const addr = [
-          place.streetNumber, place.street, place.district
-        ].filter(Boolean).join(', ');
-        setDetectedAddress(addr);
-        setCity(place.city || 'Karachi');
-        setAddressDetail(addr);
+        setDetectedAddress(place.address);
+        setCity(place.city);
+        setAddressDetail(place.address);
       }
       setStep('map');
     } catch (error) {
@@ -75,14 +105,11 @@ export default function OnboardingAddressScreen() {
     const coords = e.nativeEvent.coordinate;
     setSelectedCoords(coords);
     try {
-      const [place] = await Location.reverseGeocodeAsync(coords);
+      const place = await reverseGeocode(coords);
       if (place) {
-        const addr = [
-          place.streetNumber, place.street, place.district
-        ].filter(Boolean).join(', ');
-        setDetectedAddress(addr);
-        setCity(place.city || 'Karachi');
-        setAddressDetail(addr);
+        setDetectedAddress(place.address);
+        setCity(place.city);
+        setAddressDetail(place.address);
       }
     } catch (e) {
       console.log('Reverse geocode error:', e);
@@ -146,7 +173,7 @@ export default function OnboardingAddressScreen() {
               <ActivityIndicator color="#fff" />
             ) : (
               <>
-                <Ionicons name="locate" size={20} color="#fff" />
+                <Compass size={20} color="#fff" />
                 <Text style={s.primaryBtnText}>
                   Use my current location
                 </Text>
@@ -158,7 +185,7 @@ export default function OnboardingAddressScreen() {
             style={s.secondaryBtn}
             onPress={() => setStep('map')}
           >
-            <Ionicons name="map-outline" size={20} color="#00C853" />
+            <Map size={20} color="#00C896" />
             <Text style={s.secondaryBtnText}>
               Pin location on map
             </Text>
@@ -181,7 +208,7 @@ export default function OnboardingAddressScreen() {
       <SafeAreaView style={s.container} edges={['top']}>
         <View style={s.mapHeader}>
           <TouchableOpacity onPress={() => setStep('welcome')} style={s.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#1A1A2E" />
+            <ArrowLeft size={24} color="#F0F0F5" />
           </TouchableOpacity>
           <Text style={s.mapHeaderTitle}>Pin your location</Text>
           <View style={{width: 40}} />
@@ -217,7 +244,7 @@ export default function OnboardingAddressScreen() {
         <View style={s.mapBottom}>
           {detectedAddress ? (
             <View style={s.detectedAddr}>
-              <Ionicons name="location" size={16} color="#00C853" />
+              <MapPin size={16} color="#00C896" />
               <Text style={s.detectedAddrText} numberOfLines={2}>
                 {detectedAddress}
               </Text>
@@ -232,7 +259,7 @@ export default function OnboardingAddressScreen() {
             style={s.currentLocBtn}
             onPress={useCurrentLocation}
           >
-            <Ionicons name="locate" size={16} color="#00C853" />
+            <Compass size={16} color="#00C896" />
             <Text style={s.currentLocText}>Use current location</Text>
           </TouchableOpacity>
           
@@ -256,7 +283,7 @@ export default function OnboardingAddressScreen() {
         keyboardShouldPersistTaps="handled">
         <View style={s.mapHeader}>
           <TouchableOpacity onPress={() => setStep('map')} style={s.backBtn}>
-            <Ionicons name="arrow-back" size={24} color="#1A1A2E" />
+            <ArrowLeft size={24} color="#F0F0F5" />
           </TouchableOpacity>
           <Text style={s.mapHeaderTitle}>Address details</Text>
           <View style={{width: 40}} />
@@ -303,7 +330,7 @@ export default function OnboardingAddressScreen() {
           value={addressDetail}
           onChangeText={setAddressDetail}
           placeholder="House/flat, street name, area"
-          placeholderTextColor="#BBBBCC"
+          placeholderTextColor="#8888AA"
         />
         
         <Text style={s.fieldLabel}>City</Text>
@@ -312,27 +339,29 @@ export default function OnboardingAddressScreen() {
           value={city}
           onChangeText={setCity}
           placeholder="Karachi"
-          placeholderTextColor="#BBBBCC"
+          placeholderTextColor="#8888AA"
         />
         
-        <TouchableOpacity
-          style={[s.primaryBtn, saving && s.btnDisabled]}
-          onPress={saveAddress}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={s.primaryBtnText}>Save & Continue →</Text>
-          )}
-        </TouchableOpacity>
+        <View style={{ paddingHorizontal: 16, marginTop: 20 }}>
+          <TouchableOpacity
+            style={[s.primaryBtn, saving && s.btnDisabled]}
+            onPress={saveAddress}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={s.primaryBtnText}>Save & Continue →</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: '#0A0A0F' },
   welcomeContent: {
     flex: 1, alignItems: 'center',
     justifyContent: 'center', paddingHorizontal: 32,
@@ -340,16 +369,16 @@ const s = StyleSheet.create({
   welcomeEmoji: { fontSize: 64, marginBottom: 20 },
   welcomeTitle: {
     fontSize: 26, fontWeight: '900',
-    color: '#1A1A2E', marginBottom: 12, textAlign: 'center',
+    color: '#F0F0F5', marginBottom: 12, textAlign: 'center',
   },
   welcomeSub: {
-    fontSize: 15, color: '#555570', textAlign: 'center',
+    fontSize: 15, color: '#8888AA', textAlign: 'center',
     lineHeight: 24, marginBottom: 36,
   },
   primaryBtn: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#00C853', borderRadius: 14,
+    backgroundColor: '#00C896', borderRadius: 14,
     paddingVertical: 16, paddingHorizontal: 24,
     width: '100%', gap: 8, marginBottom: 12,
   },
@@ -359,56 +388,57 @@ const s = StyleSheet.create({
   secondaryBtn: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0FFF4', borderRadius: 14,
+    backgroundColor: '#111118', borderRadius: 14,
     paddingVertical: 16, paddingHorizontal: 24,
     width: '100%', gap: 8, marginBottom: 12,
-    borderWidth: 1.5, borderColor: '#00C853',
+    borderWidth: 1.5, borderColor: '#00C896',
   },
   secondaryBtnText: {
-    color: '#00C853', fontSize: 16, fontWeight: '700'
+    color: '#00C896', fontSize: 16, fontWeight: '700'
   },
   skipBtn: { marginTop: 8, padding: 12 },
-  skipText: { color: '#9999AA', fontSize: 14 },
+  skipText: { color: '#8888AA', fontSize: 14 },
   btnDisabled: { opacity: 0.6 },
   mapHeader: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF', paddingHorizontal: 16,
+    backgroundColor: '#0A0A0F', paddingHorizontal: 16,
     paddingVertical: 12, borderBottomWidth: 1,
-    borderBottomColor: '#E4E5EF',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   mapHeaderTitle: {
-    fontSize: 17, fontWeight: '800', color: '#1A1A2E'
+    fontSize: 17, fontWeight: '800', color: '#F0F0F5'
   },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#16161F',
     alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   fullMap: { flex: 1 },
   mapBottom: {
-    backgroundColor: '#FFFFFF', padding: 16,
-    borderTopWidth: 1, borderTopColor: '#E4E5EF',
+    backgroundColor: '#111118', padding: 16,
+    borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.08)',
     gap: 10,
   },
   detectedAddr: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F0FFF4', borderRadius: 10,
+    backgroundColor: 'rgba(0, 200, 150, 0.06)', borderRadius: 10,
     padding: 10, gap: 8,
-    borderWidth: 1, borderColor: '#C8E6C9',
+    borderWidth: 1, borderColor: 'rgba(0, 200, 150, 0.2)',
   },
   detectedAddrText: {
-    flex: 1, fontSize: 13, color: '#1A1A2E', fontWeight: '600'
+    flex: 1, fontSize: 13, color: '#F0F0F5', fontWeight: '600'
   },
   mapHint: {
-    fontSize: 13, color: '#9999AA', textAlign: 'center'
+    fontSize: 13, color: '#8888AA', textAlign: 'center'
   },
   currentLocBtn: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', gap: 6, padding: 8,
   },
   currentLocText: {
-    color: '#00C853', fontSize: 13, fontWeight: '700'
+    color: '#00C896', fontSize: 13, fontWeight: '700'
   },
   miniMap: {
     height: 150, borderRadius: 12,
@@ -417,7 +447,7 @@ const s = StyleSheet.create({
   },
   detailsContent: { paddingBottom: 40 },
   fieldLabel: {
-    fontSize: 13, fontWeight: '700', color: '#555570',
+    fontSize: 13, fontWeight: '700', color: '#8888AA',
     marginTop: 16, marginBottom: 6, marginHorizontal: 16,
   },
   labelsRow: {
@@ -426,20 +456,20 @@ const s = StyleSheet.create({
   },
   labelChip: {
     paddingHorizontal: 14, paddingVertical: 8,
-    backgroundColor: '#F5F6FA', borderRadius: 20,
-    borderWidth: 1.5, borderColor: '#E4E5EF',
+    backgroundColor: '#16161F', borderRadius: 20,
+    borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   labelChipActive: {
-    backgroundColor: '#E8F5E9', borderColor: '#00C853',
+    backgroundColor: 'rgba(0, 200, 150, 0.1)', borderColor: '#00C896',
   },
   labelChipText: {
-    fontSize: 13, fontWeight: '600', color: '#555570'
+    fontSize: 13, fontWeight: '600', color: '#8888AA'
   },
-  labelChipTextActive: { color: '#00A843' },
+  labelChipTextActive: { color: '#00C896' },
   input: {
-    marginHorizontal: 16, backgroundColor: '#F8F9FC',
-    borderWidth: 1.5, borderColor: '#E4E5EF',
+    marginHorizontal: 16, backgroundColor: '#16161F',
+    borderWidth: 1.5, borderColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 12, paddingHorizontal: 14,
-    paddingVertical: 12, fontSize: 15, color: '#1A1A2E',
+    paddingVertical: 12, fontSize: 15, color: '#F0F0F5',
   },
 });

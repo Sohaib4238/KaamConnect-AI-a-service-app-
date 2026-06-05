@@ -8,38 +8,51 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { 
+  ArrowLeft, 
+  Lightbulb, 
+  Snowflake, 
+  Flame, 
+  Droplets, 
+  Zap, 
+  Sparkles, 
+  Hammer, 
+  Paintbrush, 
+  Smile, 
+  BookOpen, 
+  Wrench, 
+  Cpu 
+} from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 const TILE_SIZE = (width - 48) / 3;
 
 const C = {
-  bg: '#F5F6FA',
-  white: '#FFFFFF',
-  primary: '#00C853',
-  primaryDark: '#00A843',
-  text: '#1A1A2E',
-  textSec: '#555570',
-  textMuted: '#9999AA',
-  border: '#E4E5EF',
-  warningBg: '#FFF8E1',
-  warningBorder: '#FFE082',
-  warningText: '#B78103',
-  shadow: '#0000000A',
+  bg: '#0A0A0F',
+  white: '#111118',
+  primary: '#00C896',
+  primaryDark: '#00A882',
+  text: '#F0F0F5',
+  textSec: '#8888AA',
+  textMuted: '#555570',
+  border: 'rgba(255, 255, 255, 0.08)',
+  warningBg: 'rgba(245, 200, 66, 0.08)',
+  warningBorder: '#F5C842',
+  warningText: '#F5C842',
 };
 
 const SERVICES = [
-  { label: 'AC Services', icon: 'snow-outline', color: '#2196F3', category: 'AC_REPAIR' },
-  { label: 'Geyser Services', icon: 'flame-outline', color: '#FF9800', category: 'GEYSER' },
-  { label: 'Plumbing', icon: 'water-outline', color: '#00897B', category: 'PLUMBER' },
-  { label: 'Electrical', icon: 'flash-outline', color: '#FFC107', category: 'ELECTRICIAN' },
-  { label: 'Home Cleaning', icon: 'sparkles-outline', color: '#00BCD4', category: 'CLEANER' },
-  { label: 'Carpentry', icon: 'hammer-outline', color: '#795548', category: 'CARPENTER' },
-  { label: 'Painting', icon: 'brush-outline', color: '#9C27B0', category: 'PAINTER' },
-  { label: 'Beauticians', icon: 'rose-outline', color: '#E91E63', category: 'BEAUTICIAN' },
-  { label: 'Tutors', icon: 'book-outline', color: '#FF5722', category: 'TUTOR' },
-  { label: 'Appliance Repair', icon: 'construct-outline', color: '#607D8B', category: 'APPLIANCE_REPAIR' },
-  { label: 'Smart Home', icon: 'keypad-outline', color: '#3F51B5', category: 'SMART_HOME' },
+  { label: 'AC Services', Icon: Snowflake, color: '#00C896', category: 'AC_REPAIR' },
+  { label: 'Geyser Services', Icon: Flame, color: '#FF7B54', category: 'GEYSER' },
+  { label: 'Plumbing', Icon: Droplets, color: '#38B6FF', category: 'PLUMBER' },
+  { label: 'Electrical', Icon: Zap, color: '#FFD23F', category: 'ELECTRICIAN' },
+  { label: 'Home Cleaning', Icon: Sparkles, color: '#7B61FF', category: 'CLEANER' },
+  { label: 'Carpentry', Icon: Hammer, color: '#A06A42', category: 'CARPENTER' },
+  { label: 'Painting', Icon: Paintbrush, color: '#FF5964', category: 'PAINTER' },
+  { label: 'Beauticians', Icon: Smile, color: '#FF92C2', category: 'BEAUTICIAN' },
+  { label: 'Tutors', Icon: BookOpen, color: '#4EA8DE', category: 'TUTOR' },
+  { label: 'Appliance Repair', Icon: Wrench, color: '#9AA0A6', category: 'APPLIANCE_REPAIR' },
+  { label: 'Smart Home', Icon: Cpu, color: '#353535', category: 'SMART_HOME' },
 ];
 
 export default function HomeServicesScreen({ navigation }) {
@@ -56,7 +69,7 @@ export default function HomeServicesScreen({ navigation }) {
       {/* Custom Header */}
       <View style={s.header}>
         <TouchableOpacity style={s.backBtn} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={C.text} />
+          <ArrowLeft size={22} color={C.text} />
         </TouchableOpacity>
         <View style={s.headerTitleWrap}>
           <Text style={s.headerTitle}>Home Services</Text>
@@ -64,11 +77,11 @@ export default function HomeServicesScreen({ navigation }) {
         </View>
       </View>
 
-      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent}>
+      <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Search Hint / Ambient Banner */}
         <View style={s.banner}>
           <View style={s.bannerIconWrap}>
-            <Ionicons name="bulb-outline" size={20} color={C.warningText} />
+            <Lightbulb size={20} color={C.warningText} />
           </View>
           <Text style={s.bannerText}>
             Ambiguous prompt search: Ask the AI Chat in KaamConnect to auto-orchestrate multiple services at once!
@@ -78,19 +91,22 @@ export default function HomeServicesScreen({ navigation }) {
         {/* 3x3 Grid of categories */}
         <Text style={s.sectionTitle}>All Categories</Text>
         <View style={s.grid}>
-          {SERVICES.map((svc, idx) => (
-            <TouchableOpacity
-              key={idx}
-              style={s.tile}
-              activeOpacity={0.7}
-              onPress={() => handleSelectService(svc)}
-            >
-              <View style={[s.tileIconWrap, { backgroundColor: svc.color + '15' }]}>
-                <Ionicons name={svc.icon} size={28} color={svc.color} />
-              </View>
-              <Text style={s.tileLabel} numberOfLines={2}>{svc.label}</Text>
-            </TouchableOpacity>
-          ))}
+          {SERVICES.map((svc, idx) => {
+            const IconComponent = svc.Icon;
+            return (
+              <TouchableOpacity
+                key={idx}
+                style={s.tile}
+                activeOpacity={0.8}
+                onPress={() => handleSelectService(svc)}
+              >
+                <View style={[s.tileIconWrap, { backgroundColor: svc.color + '15' }]}>
+                  <IconComponent size={28} color={svc.color} />
+                </View>
+                <Text style={s.tileLabel} numberOfLines={2}>{svc.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -107,7 +123,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: C.white,
+    backgroundColor: '#0A0A0F',
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
@@ -125,7 +141,7 @@ const s = StyleSheet.create({
   },
   headerSub: {
     fontSize: 11,
-    color: C.textMuted,
+    color: C.textSec,
     marginTop: 1,
   },
   scroll: {
@@ -139,10 +155,10 @@ const s = StyleSheet.create({
     alignItems: 'flex-start',
     backgroundColor: C.warningBg,
     borderWidth: 1,
-    borderColor: C.warningBorder,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
+    borderColor: C.warningText + '30',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 24,
   },
   bannerIconWrap: {
     marginRight: 10,
@@ -156,12 +172,12 @@ const s = StyleSheet.create({
     fontWeight: '600',
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '800',
-    color: C.text,
+    color: C.textSec,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 12,
+    letterSpacing: 0.8,
+    marginBottom: 14,
   },
   grid: {
     flexDirection: 'row',
@@ -170,20 +186,15 @@ const s = StyleSheet.create({
   },
   tile: {
     width: TILE_SIZE,
-    backgroundColor: C.white,
-    borderRadius: 16,
+    backgroundColor: '#16161F',
+    borderRadius: 20,
     padding: 12,
     marginHorizontal: 4,
     marginBottom: 8,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: C.border,
-    shadowColor: C.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
     height: TILE_SIZE + 10,
   },
   tileIconWrap: {

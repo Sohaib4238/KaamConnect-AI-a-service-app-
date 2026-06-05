@@ -95,10 +95,10 @@ function AppNavigator() {
     return (
       <View style={{
         flex: 1, justifyContent: 'center',
-        alignItems: 'center', backgroundColor: '#FFFFFF'
+        alignItems: 'center', backgroundColor: '#0A0A0F'
       }}>
         <Text style={{
-          marginTop: 16, color: '#9999AA', fontSize: 14, fontWeight: '600'
+          marginTop: 16, color: '#8888AA', fontSize: 14, fontWeight: '600'
         }}>Loading...</Text>
       </View>
     );
@@ -119,15 +119,15 @@ function AppNavigator() {
             const [active, inactive] = TAB_ICONS[route.name] || ['ellipse', 'ellipse-outline'];
             return <Ionicons name={focused ? active : inactive} size={22} color={color} />;
           },
-          tabBarActiveTintColor: '#00C853',
-          tabBarInactiveTintColor: '#9999AA',
+          tabBarActiveTintColor: '#00C896',
+          tabBarInactiveTintColor: '#8888AA',
           tabBarStyle: {
-            backgroundColor: '#FFFFFF',
-            borderTopColor: '#E4E5EF',
+            backgroundColor: '#111118',
+            borderTopColor: 'rgba(255, 255, 255, 0.08)',
             borderTopWidth: 1,
-            height: 60 + (insets.bottom > 0 ? insets.bottom : 8),
-            paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
-            paddingTop: 6,
+            height: 72,
+            paddingBottom: 12,
+            paddingTop: 10,
           },
           tabBarLabelStyle: {
             fontSize: 10,
@@ -159,7 +159,7 @@ function AppNavigator() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0F" />
       <AuthProvider>
         <AppNavigator />
       </AuthProvider>

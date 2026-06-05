@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Check, Wrench, List, Clock, User, MapPin } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const C = {
-  bg: '#F5F6FA', surface: '#FFFFFF', card: '#FFFFFF', primary: '#00C853',
-  text: '#1A1A2E', textSec: '#555570', textMuted: '#9999AA',
-  border: '#E4E5EF', headerBg: '#FFFFFF', warning: '#FF9500', star: '#FFB300'
+  bg: '#0A0A0F', surface: '#111118', card: '#16161F', primary: '#00C896',
+  text: '#F0F0F5', textSec: '#8888AA', textMuted: '#555570',
+  border: 'rgba(255, 255, 255, 0.08)', headerBg: '#0A0A0F', warning: '#F5C842', star: '#F5C842'
 };
 
 export default function BookingSuccessScreen({ route, navigation }) {
@@ -43,8 +44,15 @@ export default function BookingSuccessScreen({ route, navigation }) {
     <SafeAreaView style={s.container}>
       <View style={s.content}>
         {/* Animated Check Circle */}
-        <Animated.View style={[s.checkCircle, { transform: [{ scale: scaleAnim }] }]}>
-          <Ionicons name="checkmark" size={54} color="#FFFFFF" />
+        <Animated.View style={[s.checkCircleWrapper, { transform: [{ scale: scaleAnim }] }]}>
+          <LinearGradient
+            colors={['#00C896', '#7B61FF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.checkCircle}
+          >
+            <Check size={44} color="#FFFFFF" strokeWidth={3} />
+          </LinearGradient>
         </Animated.View>
         
         <Text style={s.successTitle}>Booking Confirmed!</Text>
@@ -53,7 +61,7 @@ export default function BookingSuccessScreen({ route, navigation }) {
         {/* Detail Card */}
         <View style={s.detailCard}>
           <View style={s.detailRow}>
-            <Ionicons name="construct" size={16} color={C.primary} style={s.detailIcon} />
+            <Wrench size={16} color={C.primary} style={s.detailIcon} />
             <Text style={s.detailText}>
               <Text style={s.boldLabel}>Provider: </Text>
               {provider?.name || booking?.provider_name}
@@ -61,7 +69,7 @@ export default function BookingSuccessScreen({ route, navigation }) {
           </View>
 
           <View style={s.detailRow}>
-            <Ionicons name="list" size={16} color={C.primary} style={s.detailIcon} />
+            <List size={16} color={C.primary} style={s.detailIcon} />
             <Text style={s.detailText}>
               <Text style={s.boldLabel}>Services: </Text>
               {booking?.services_booked?.map(s => s.name).join(', ')}
@@ -69,7 +77,7 @@ export default function BookingSuccessScreen({ route, navigation }) {
           </View>
 
           <View style={s.detailRow}>
-            <Ionicons name="time" size={16} color={C.primary} style={s.detailIcon} />
+            <Clock size={16} color={C.primary} style={s.detailIcon} />
             <Text style={s.detailText}>
               <Text style={s.boldLabel}>Time: </Text>
               {formatPKTTime(booking?.slot)}
@@ -77,7 +85,7 @@ export default function BookingSuccessScreen({ route, navigation }) {
           </View>
 
           <View style={s.detailRow}>
-            <Ionicons name="person" size={16} color={C.primary} style={s.detailIcon} />
+            <User size={16} color={C.primary} style={s.detailIcon} />
             <Text style={s.detailText}>
               <Text style={s.boldLabel}>Client: </Text>
               {booking?.user_details?.name} · {booking?.user_details?.phone}
@@ -85,7 +93,7 @@ export default function BookingSuccessScreen({ route, navigation }) {
           </View>
 
           <View style={s.detailRow}>
-            <Ionicons name="location" size={16} color={C.primary} style={s.detailIcon} />
+            <MapPin size={16} color={C.primary} style={s.detailIcon} />
             <Text style={s.detailText}>
               <Text style={s.boldLabel}>Address: </Text>
               {booking?.user_details?.address}
@@ -106,7 +114,8 @@ export default function BookingSuccessScreen({ route, navigation }) {
         
         {/* Buttons */}
         <TouchableOpacity 
-          style={s.homeBtn}
+          style={s.homeBtnWrapper}
+          activeOpacity={0.85}
           onPress={() => {
             if (route.params?.source === 'aiChat') {
               navigation.navigate('Chat', { screen: 'ChatMain' });
@@ -115,11 +124,19 @@ export default function BookingSuccessScreen({ route, navigation }) {
             }
           }}
         >
-          <Text style={s.homeBtnText}>Back to Home</Text>
+          <LinearGradient
+            colors={['#00C896', '#7B61FF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={s.homeBtn}
+          >
+            <Text style={s.homeBtnText}>Back to Home</Text>
+          </LinearGradient>
         </TouchableOpacity>
         
         <TouchableOpacity 
           style={s.requestsBtn}
+          activeOpacity={0.8}
           onPress={() => navigation.navigate('ActiveRequests')}
         >
           <Text style={s.requestsBtnText}>View My Bookings</Text>
@@ -137,13 +154,7 @@ const s = StyleSheet.create({
     alignItems: 'center', 
     padding: 24 
   },
-  checkCircle: { 
-    width: 90, 
-    height: 90, 
-    borderRadius: 45, 
-    backgroundColor: C.primary, 
-    justifyContent: 'center', 
-    alignItems: 'center',
+  checkCircleWrapper: {
     marginBottom: 20,
     shadowColor: C.primary,
     shadowOffset: { width: 0, height: 6 },
@@ -151,21 +162,23 @@ const s = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6
   },
-  successTitle: { color: C.text, fontSize: 24, fontWeight: '800', marginBottom: 4 },
-  bookingId: { color: C.primary, fontSize: 13, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 24 },
+  checkCircle: { 
+    width: 90, 
+    height: 90, 
+    borderRadius: 45, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+  },
+  successTitle: { color: C.text, fontSize: 24, fontWeight: '800', marginBottom: 4, letterSpacing: -0.5 },
+  bookingId: { color: C.primary, fontSize: 12, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 24 },
   detailCard: { 
     width: '100%',
-    backgroundColor: C.surface, 
+    backgroundColor: '#16161F', 
     borderRadius: 20, 
     borderWidth: 1, 
-    borderColor: C.border, 
+    borderColor: 'rgba(255, 255, 255, 0.04)', 
     padding: 20, 
     marginBottom: 24,
-    shadowColor: '#00000008',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 2
   },
   detailRow: { 
     flexDirection: 'row', 
@@ -177,30 +190,33 @@ const s = StyleSheet.create({
   boldLabel: { color: C.text, fontWeight: '700' },
   divider: { height: 1, backgroundColor: C.border, marginVertical: 14 },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  priceLabel: { color: C.textMuted, fontSize: 12, fontWeight: '600', textTransform: 'uppercase' },
+  priceLabel: { color: C.textSec, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   priceAmount: { color: C.primary, fontSize: 20, fontWeight: '800' },
-  homeBtn: { 
+  homeBtnWrapper: {
     width: '100%',
-    backgroundColor: C.primary, 
     borderRadius: 12, 
-    paddingVertical: 14, 
-    alignItems: 'center', 
     marginBottom: 12,
     shadowColor: C.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 3
   },
-  homeBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  homeBtn: { 
+    borderRadius: 12, 
+    paddingVertical: 14, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+  },
+  homeBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '850' },
   requestsBtn: { 
     width: '100%',
-    backgroundColor: C.card, 
+    backgroundColor: '#111118', 
     borderWidth: 1, 
     borderColor: C.border,
     borderRadius: 12, 
     paddingVertical: 14, 
     alignItems: 'center' 
   },
-  requestsBtnText: { color: C.text, fontSize: 14, fontWeight: '700' }
+  requestsBtnText: { color: C.text, fontSize: 14, fontWeight: '750' }
 });

@@ -4,8 +4,15 @@ import {
   StyleSheet, TextInput, Alert, ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, LogOut } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const C = {
+  bg: '#0A0A0F', surface: '#111118', card: '#16161F', primary: '#00C896',
+  text: '#F0F0F5', textSec: '#8888AA', textMuted: '#555570',
+  border: 'rgba(255, 255, 255, 0.08)', headerBg: '#0A0A0F', error: '#FF5C5C'
+};
 
 export default function ProfileScreen({ navigation }) {
   const { user, userProfile, logout, updateUserProfile } = useAuth();
@@ -54,7 +61,7 @@ export default function ProfileScreen({ navigation }) {
         <TouchableOpacity
           style={s.backBtn}
           onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#1A1A2E" />
+          <ArrowLeft size={22} color={C.text} />
         </TouchableOpacity>
         <Text style={s.headerTitle}>My Profile</Text>
         <TouchableOpacity onPress={() => setEditing(!editing)}>
@@ -64,12 +71,17 @@ export default function ProfileScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={s.scroll}>
+      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
         {/* Avatar */}
         <View style={s.avatarSection}>
-          <View style={s.avatarCircle}>
+          <LinearGradient
+            colors={['#00C896', '#7B61FF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={s.avatarCircle}
+          >
             <Text style={s.avatarText}>{getInitials()}</Text>
-          </View>
+          </LinearGradient>
           <Text style={s.userName}>
             {name || user?.displayName || 'User'}
           </Text>
@@ -87,7 +99,7 @@ export default function ProfileScreen({ navigation }) {
               value={name}
               onChangeText={setName}
               placeholder="Your full name"
-              placeholderTextColor="#BBBBCC"
+              placeholderTextColor="#555570"
             />
           ) : (
             <Text style={s.fieldValue}>
@@ -109,7 +121,7 @@ export default function ProfileScreen({ navigation }) {
               value={phone}
               onChangeText={setPhone}
               placeholder="03xx-xxxxxxx"
-              placeholderTextColor="#BBBBCC"
+              placeholderTextColor="#555570"
               keyboardType="phone-pad"
             />
           ) : (
@@ -121,14 +133,23 @@ export default function ProfileScreen({ navigation }) {
 
         {editing && (
           <TouchableOpacity
-            style={[s.saveBtn, saving && { opacity: 0.6 }]}
+            style={s.saveBtnWrapper}
             onPress={handleSave}
-            disabled={saving}>
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={s.saveBtnText}>Save Changes</Text>
-            )}
+            disabled={saving}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#00C896', '#7B61FF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={s.saveBtn}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={s.saveBtnText}>Save Changes</Text>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         )}
 
@@ -158,8 +179,10 @@ export default function ProfileScreen({ navigation }) {
         {/* Sign out */}
         <TouchableOpacity
           style={s.logoutBtn}
-          onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#F44336" />
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <LogOut size={20} color={C.error} />
           <Text style={s.logoutText}>Sign Out</Text>
         </TouchableOpacity>
 
@@ -170,81 +193,90 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F6FA' },
+  container: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF', paddingHorizontal: 16,
+    backgroundColor: '#0A0A0F', paddingHorizontal: 16,
     paddingVertical: 14, borderBottomWidth: 1,
-    borderBottomColor: '#E4E5EF',
+    borderBottomColor: C.border,
   },
   backBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     alignItems: 'center', justifyContent: 'center',
   },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#1A1A2E' },
-  editBtn: { fontSize: 15, color: '#00C853', fontWeight: '700' },
+  headerTitle: { fontSize: 18, fontWeight: '700', color: C.text, letterSpacing: -0.3 },
+  editBtn: { fontSize: 15, color: C.primary, fontWeight: '700' },
   scroll: { flex: 1 },
   avatarSection: {
     alignItems: 'center', paddingVertical: 28,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1, borderBottomColor: '#E4E5EF',
+    backgroundColor: '#111118',
+    borderBottomWidth: 1, borderBottomColor: C.border,
   },
   avatarCircle: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: '#00C853',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 12,
   },
   avatarText: { fontSize: 28, fontWeight: '800', color: '#FFFFFF' },
-  userName: { fontSize: 20, fontWeight: '800', color: '#1A1A2E' },
-  userEmail: { fontSize: 14, color: '#9999AA', marginTop: 4 },
+  userName: { fontSize: 20, fontWeight: '850', color: C.text, letterSpacing: -0.5 },
+  userEmail: { fontSize: 14, color: C.textSec, marginTop: 4 },
   card: {
-    backgroundColor: '#FFFFFF', marginHorizontal: 16,
-    marginTop: 16, borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: '#E4E5EF',
+    backgroundColor: '#16161F', marginHorizontal: 16,
+    marginTop: 16, borderRadius: 20, padding: 16,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.04)',
   },
   cardTitle: {
-    fontSize: 13, fontWeight: '800', color: '#555570',
+    fontSize: 12, fontWeight: '800', color: C.textSec,
     textTransform: 'uppercase', letterSpacing: 0.8,
     marginBottom: 16,
   },
-  fieldLabel: { fontSize: 12, color: '#9999AA', marginBottom: 4 },
+  fieldLabel: { fontSize: 12, color: C.textSec, marginBottom: 4 },
   fieldValue: {
-    fontSize: 15, color: '#1A1A2E',
+    fontSize: 15, color: C.text,
     fontWeight: '600', paddingVertical: 4
   },
   fieldInput: {
-    fontSize: 15, color: '#1A1A2E',
-    backgroundColor: '#F8F9FC',
-    borderWidth: 1, borderColor: '#E4E5EF',
-    borderRadius: 10, paddingHorizontal: 12,
+    fontSize: 15, color: C.text,
+    backgroundColor: '#111118',
+    borderWidth: 1, borderColor: C.border,
+    borderRadius: 12, paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  divider: { height: 1, backgroundColor: '#F0F1F8', marginVertical: 12 },
-  saveBtn: {
-    backgroundColor: '#00C853', marginHorizontal: 16,
-    marginTop: 12, borderRadius: 14, paddingVertical: 16,
-    alignItems: 'center',
+  divider: { height: 1, backgroundColor: C.border, marginVertical: 12 },
+  saveBtnWrapper: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3
   },
-  saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+  saveBtn: {
+    borderRadius: 12, paddingVertical: 14,
+    alignItems: 'center', justify: 'center'
+  },
+  saveBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   statRow: { flexDirection: 'row', alignItems: 'center' },
   stat: { flex: 1, alignItems: 'center' },
-  statVal: { fontSize: 22, fontWeight: '800', color: '#1A1A2E' },
-  statLabel: { fontSize: 12, color: '#9999AA', marginTop: 4 },
+  statVal: { fontSize: 22, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+  statLabel: { fontSize: 12, color: C.textSec, marginTop: 4 },
   statDivider: {
-    width: 1, height: 40, backgroundColor: '#E4E5EF'
+    width: 1, height: 40, backgroundColor: C.border
   },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFEBEE',
+    backgroundColor: 'rgba(255, 92, 92, 0.08)',
+    borderWidth: 1, borderColor: 'rgba(255, 92, 92, 0.15)',
     marginHorizontal: 16, marginTop: 16,
-    borderRadius: 14, paddingVertical: 16,
+    borderRadius: 12, paddingVertical: 14,
     gap: 8,
   },
   logoutText: {
-    color: '#F44336', fontSize: 16, fontWeight: '700'
+    color: C.error, fontSize: 15, fontWeight: '800'
   },
 });

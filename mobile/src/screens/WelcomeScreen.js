@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowRight } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -41,9 +42,9 @@ export default function WelcomeScreen({ onGetStarted }) {
 
   return (
     <SafeAreaView style={s.container} edges={['top', 'bottom']}>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       
-      {/* Top decorative circles */}
+      {/* Top decorative ambient glows */}
       <View style={s.circle1} />
       <View style={s.circle2} />
       
@@ -96,12 +97,19 @@ export default function WelcomeScreen({ onGetStarted }) {
           transform: [{ scale: btnScale }]
         }]}>
           <TouchableOpacity
-            style={s.getStartedBtn}
             onPress={onGetStarted}
             activeOpacity={0.85}
+            style={s.btnWrapper}
           >
-            <Text style={s.getStartedText}>Get Started</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
+            <LinearGradient
+              colors={['#00C896', '#7B61FF']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={s.getStartedBtn}
+            >
+              <Text style={s.getStartedText}>Get Started</Text>
+              <ArrowRight size={20} color="#fff" />
+            </LinearGradient>
           </TouchableOpacity>
           
           <Text style={s.termsText}>
@@ -116,26 +124,26 @@ export default function WelcomeScreen({ onGetStarted }) {
 const s = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0A0A0F',
     overflow: 'hidden',
   },
   circle1: {
     position: 'absolute',
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: width * 0.4,
-    backgroundColor: '#F0FFF8',
-    top: -width * 0.3,
-    right: -width * 0.2,
+    width: width * 0.9,
+    height: width * 0.9,
+    borderRadius: (width * 0.9) / 2,
+    backgroundColor: 'rgba(0, 200, 150, 0.06)',
+    top: -width * 0.35,
+    right: -width * 0.25,
   },
   circle2: {
     position: 'absolute',
-    width: width * 0.6,
-    height: width * 0.6,
-    borderRadius: width * 0.3,
-    backgroundColor: '#F8FFF4',
-    bottom: -width * 0.15,
-    left: -width * 0.15,
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: (width * 0.8) / 2,
+    backgroundColor: 'rgba(123, 97, 255, 0.06)',
+    bottom: -width * 0.2,
+    left: -width * 0.2,
   },
   content: {
     flex: 1,
@@ -143,66 +151,75 @@ const s = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
     justifyContent: 'space-between',
+    zIndex: 1,
   },
   logoSection: { alignItems: 'center', paddingTop: 20 },
   logoContainer: { marginBottom: 12 },
   appName: { marginBottom: 4 },
   appNameDark: {
-    fontSize: 28, fontWeight: '900', color: '#1A2B4A'
+    fontSize: 28, fontWeight: '800', color: '#F0F0F5', letterSpacing: -0.5
   },
   appNameGreen: {
-    fontSize: 28, fontWeight: '900', color: '#00C853'
+    fontSize: 28, fontWeight: '800', color: '#00C896', letterSpacing: -0.5
   },
   appTagline: {
-    fontSize: 14, color: '#9999AA', fontWeight: '500'
+    fontSize: 14, color: '#8888AA', fontWeight: '500'
   },
   heroSection: { alignItems: 'center' },
   heroTitle: {
-    fontSize: 30, fontWeight: '900',
-    color: '#1A1A2E', textAlign: 'center',
+    fontSize: 30, fontWeight: '800',
+    color: '#F0F0F5', textAlign: 'center',
     lineHeight: 40, marginBottom: 12,
+    letterSpacing: -0.5
   },
-  heroTitleGreen: { color: '#00C853' },
+  heroTitleGreen: { color: '#00C896' },
   heroSub: {
-    fontSize: 15, color: '#555570',
+    fontSize: 15, color: '#8888AA',
     textAlign: 'center', lineHeight: 24,
   },
-  featuresSection: { gap: 12 },
+  featuresSection: { gap: 14 },
   featureRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 20,
+    padding: 12,
   },
   featureIconWrap: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: '#F0FFF8',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#C8E6C9',
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   featureIcon: { fontSize: 20 },
   featureText: {
-    fontSize: 15, color: '#1A1A2E',
+    fontSize: 15, color: '#F0F0F5',
     fontWeight: '600', flex: 1,
   },
   btnSection: { gap: 12 },
+  btnWrapper: {
+    borderRadius: 50,
+    shadowColor: '#00C896',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 15,
+    elevation: 8,
+  },
   getStartedBtn: {
-    backgroundColor: '#00C853',
-    borderRadius: 16,
+    borderRadius: 50,
     paddingVertical: 18,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    shadowColor: '#00C853',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 8,
   },
   getStartedText: {
     color: '#FFFFFF', fontSize: 18,
-    fontWeight: '900', letterSpacing: 0.3,
+    fontWeight: '700', letterSpacing: 0.3,
   },
   termsText: {
-    fontSize: 11, color: '#BBBBCC',
+    fontSize: 11, color: '#8888AA',
     textAlign: 'center', lineHeight: 16,
   },
 });
